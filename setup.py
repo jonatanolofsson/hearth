@@ -14,6 +14,9 @@ setup(
     entry_points={
         'console_scripts': ['hearth=hearth:main'],
     },
+    install_requires=[
+        'hbmqtt',
+    ],
     tests_require=[
         'pytest',
     ],

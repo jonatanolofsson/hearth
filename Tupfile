@@ -1,0 +1,2 @@
+include_rules
+: js/hearth.js |> !jscompile |> www/hearth.js

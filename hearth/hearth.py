@@ -7,9 +7,10 @@ import os
 import importlib.util
 import logging
 import re
-# import websockets
+import uvloop
 
 
+asyncio.set_event_loop(uvloop.new_event_loop())
 # asyncio.get_event_loop().set_debug(True)
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
@@ -52,14 +53,17 @@ def load_config_directory(directory):
     return conf_modules
 
 
-def add_devices(room, new_devices):
+def add_devices(*devices):
     """Add devices."""
-    DEVICES[room] = new_devices
+    new_devices = {}
+    for device in devices:
+        new_devices[device.id] = device
+    DEVICES.update(new_devices)
 
 
-def get_device(room, device):
+def get_device(device):
     """Get device."""
-    return DEVICES.get(room, {}).get(device, False)
+    return DEVICES.get(device, False)
 
 
 def main():
