@@ -52,6 +52,7 @@ async def wsocket(_, socket):
 
 def broadcast(payload):
     """Send data to all websocket listeners."""
+    LOGGER.info("Broadcasting '%s'", payload)
     asyncio.ensure_future(asyncio.gather(*[s.send(payload) for s in SOCKETS]))
 
 

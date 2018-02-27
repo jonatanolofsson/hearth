@@ -10,6 +10,7 @@ import TextField from 'material-ui/TextField';
 import IconButton from 'material-ui/IconButton';
 import NavigationClose from 'material-ui/svg-icons/navigation/close';
 import Toggle from 'material-ui/Toggle';
+import Slider from 'material-ui/Slider';
 
 const DEVICES = {};
 
@@ -82,18 +83,6 @@ class DeviceHandler {
     }
 }
 
-function UIComponent(c, state, key, action) {
-    switch (c.class) {
-        case "FlatButton":
-            return <FlatButton key={key} onClick={(e) => action()} {...c.props} />;
-        case "Toggle":
-            if (c.state) {
-                c.props.toggled = state[c.state];
-            }
-            return <Toggle key={key} onToggle={(e,v) => action(v)} {...c.props} />;
-    }
-}
-
 class Device extends Component {
     constructor(props) {
         super(props);
@@ -102,6 +91,33 @@ class Device extends Component {
         this.state = this.handler.props.state;
         this.state.__open = false;
     }
+
+    UIComponent(c, state, key, action) {
+        switch (c.class) {
+            case "FlatButton":
+                return <FlatButton key={key} onClick={(e) => action()} {...c.props} />;
+            case "Toggle":
+                if (c.state) {
+                    c.props.toggled = state[c.state];
+                }
+                return <Toggle key={key} onToggle={(e,v) => action(v)} {...c.props} />;
+            case "Slider":
+                if (c.state) {
+                    c.props.value = state[c.state];
+                }
+                return (
+                    <div key={'div-' + key}>
+                        <Subheader>{c.props.label}</Subheader>
+                        <Slider
+                            key={key}
+                            onChange={(e,v) => {this.value = v}}
+                            onDragStop={(e) => {action(this.value)}}
+                            {...c.props} />
+                    </div>
+                );
+        }
+    }
+
 
     handleOpen = () => { this.setState({__open: true}); }
     handleClose = () => { this.setState({__open: false}); }
@@ -113,7 +129,7 @@ class Device extends Component {
             let c = components[ci];
             let arg0 = c.arg0 || c.state || [];
             arg0 = Array.isArray(arg0) ? arg0 : [arg0];
-            dom.push(UIComponent(c,
+            dom.push(this.UIComponent(c,
                                  this.state,
                                  "uic-" + this.id + "-" + ci,
                                  this.handler.action.bind(this.handler, c.action, ...arg0)));

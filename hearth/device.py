@@ -39,7 +39,7 @@ class Device:
             new_state = {new_state: new_value}
         old_state = self.state.copy()
         self.state.update(new_state)
-        await self.state_set(new_state, old_state)
+        await self.state_set(self.state, old_state)
 
     def serialize(self):  # pylint: disable=no-self-use
         """React."""

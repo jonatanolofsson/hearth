@@ -46,7 +46,8 @@ class SonOff(Device):
 
     def ui(self):
         """Return jsx ui representation."""
-        return {"rightIcon": "indeterminate_check_box", "rightAction": "toggle",
+        return {"rightIcon": "indeterminate_check_box",
+                "rightAction": "toggle",
                 "ui": [
                     {"class": "Toggle",
                      "props": {"label": "On"},
