@@ -1,3 +1,3 @@
-from .sonoff import SonOff
-from .room import Room
-from .tradfri import Tradfri, TradfriTemperature
+from .sonoff import *
+from .room import *
+from .tradfri import *

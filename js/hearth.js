@@ -47,7 +47,7 @@ class DeviceHandler {
     }
 
     action(action) {
-        action = action || 'set_state';
+        action = action || 'set_single_state';
         let args = [].slice.call(arguments, 1)
         this.send({'m': action, args: args});
     }

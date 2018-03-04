@@ -1,7 +1,8 @@
 """SonOff device classes."""
-import asyncio
 import logging
 from hearth import Device, mqtt
+
+__all__ = ['SonOff']
 
 LOGGER = logging.getLogger(__name__)
 
@@ -9,15 +10,11 @@ LOGGER = logging.getLogger(__name__)
 class SonOff(Device):
     """SonOff switch."""
 
-    def __init__(self, id_, name, mqttc=None):
-        Device.__init__(self, id_)
+    async def __init__(self, id_, name, mqttc=None):
+        await super().__init__(id_)
         self.name = name
-        self.mqtt = mqttc or mqtt.client
+        self.mqtt = mqttc or await mqtt.server()
         self.state = {'on': False}
-        asyncio.ensure_future(self.setup())
-
-    async def setup(self):
-        """Setup."""
         await self.mqtt.sub(f"stat/{self.name}/POWER", self.update_power_state)
         await self.mqtt.pub(f"cmnd/{self.name}/power", "")
 
@@ -35,9 +32,10 @@ class SonOff(Device):
         """Toggle."""
         await (self.off() if self.state['on'] else self.on())
 
-    async def state_set(self, new_state, _):
+    async def set_state(self, new_state):
         """Update state."""
         await (self.on() if new_state['on'] else self.off())
+        await super().set_state(new_state)
 
     async def update_power_state(self, _, payload):
         """Update power state."""

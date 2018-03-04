@@ -1,34 +1,38 @@
 """MQTT Client class."""
 import asyncio
 import logging
+from asyncinit import asyncinit
 from hbmqtt.client import MQTTClient
 
 LOGGER = logging.getLogger(__name__)
 
-client = None
+SERVER = None
 
 
-class Client:
+@asyncinit
+class ServerConnection:
     """MQTT Client."""
 
-    def __init__(self, uri="mqtt://localhost:1883"):
+    async def __init__(self, uri="mqtt://localhost:1883"):
         if "://" not in uri:
             uri = "mqtt://" + uri
         self.uri = uri
         self.subscriptions = {}
         self.mqtt = MQTTClient(config={"auto_reconnect": False})
-        self._loop_future = self._loop()
-        asyncio.ensure_future(self._loop_future)
+        await self.mqtt.connect(self.uri)
+        asyncio.ensure_future(self._loop())
 
     async def _loop(self):
         """Connection handling loop."""
-        await self.mqtt.connect(self.uri)
+        LOGGER.debug("MQTT loop")
         while True:
             try:
-                await self.mqtt.subscribe(
-                    [(t, qos)
-                     for t, (_, qos) in self.subscriptions.items()])
+                if self.subscriptions:
+                    await self.mqtt.subscribe(
+                        [(t, qos)
+                         for t, (_, qos) in self.subscriptions.items()])
                 while True:
+                    LOGGER.debug("Waiting for MQTT messages")
                     message = await self.mqtt.deliver_message()
                     topic = message.publish_packet.variable_header.topic_name
                     payload = message.publish_packet.payload.data.decode()
@@ -59,7 +63,17 @@ class Client:
         LOGGER.info("Message on unknown topic: %s : {%s}", topic, payload)
 
 
-def connect(uri="localhost:1883"):
+async def server():
+    """Get server object."""
+    while SERVER is None:
+        await asyncio.sleep(0.2)
+    return SERVER
+
+
+def connect(*args, **kwargs):
     """Connect to MQTT server."""
-    global client
-    client = Client(uri)
+    async def astart(*args, **kwargs):
+        """Async start server."""
+        global SERVER  # pylint: disable=global-statement
+        SERVER = await ServerConnection(*args, **kwargs)
+    asyncio.ensure_future(astart(*args, **kwargs))

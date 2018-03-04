@@ -3,15 +3,18 @@ import asyncio
 import inspect
 import json
 import logging
+from asyncinit import asyncinit
 from . import hearth
 from . import web
 
 LOGGER = logging.getLogger(__name__)
 
+
+@asyncinit
 class Device:
     """Device base class."""
 
-    def __init__(self, id_):
+    async def __init__(self, id_):
         self.id = id_  # pylint: disable=invalid-name
         self._refresh_fut = None
         self.state = {}
@@ -33,13 +36,13 @@ class Device:
         """New state has been set."""
         pass
 
-    async def set_state(self, new_state, new_value):
+    async def set_state(self, upd_state):
         """Set new state."""
-        if isinstance(new_state, str):
-            new_state = {new_state: new_value}
-        old_state = self.state.copy()
-        self.state.update(new_state)
-        await self.state_set(self.state, old_state)
+        self.state.update(upd_state)
+
+    async def set_single_state(self, state, value):
+        """Set single state."""
+        await self.set_state({state: value})
 
     def serialize(self):  # pylint: disable=no-self-use
         """React."""
@@ -47,7 +50,7 @@ class Device:
 
     def ui(self):  # pylint: disable=no-self-use, invalid-name
         """UI."""
-        return {}
+        return False
 
     async def webhandler(self, data, _):
         """Default webhandler."""
@@ -80,8 +83,8 @@ class Device:
 class HearthDevice(Device):
     """Device to handle the base functionality of hearth"""
 
-    def __init__(self):
-        Device.__init__(self, 0)
+    async def __init__(self):
+        await super().__init__(0)
 
     async def webhandler(self, data, socket):
         """Handle incoming message."""
@@ -92,4 +95,8 @@ class HearthDevice(Device):
                              for d in hearth.DEVICES.values()]}))
 
 
-hearth.add_devices(HearthDevice())
+async def setup():
+    """Setup."""
+    hearth.add_devices(await HearthDevice())
+
+asyncio.ensure_future(setup())

@@ -16,6 +16,8 @@ setup(
     },
     install_requires=[
         'hbmqtt',
+        'asyncinit',
+        'aiohttp'
     ],
     tests_require=[
         'pytest',

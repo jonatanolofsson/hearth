@@ -4,17 +4,22 @@ import logging
 import hearth
 from hearth import Device
 
+__all__ = ['Room']
+
 LOGGER = logging.getLogger(__name__)
 
 
 class Room(Device):
     """Room."""
 
-    def __init__(self, id_, *devices):
+    async def __init__(self, id_, *devices, sensors=None):
         """Init."""
-        Device.__init__(self, id_)
+        sensors = sensors or []
+        await super().__init__(id_)
         self.devices = devices
+        self.sensors = sensors
         hearth.add_devices(*devices)
+        hearth.add_devices(*sensors)
 
     async def off(self):
         """Shut everything down."""
