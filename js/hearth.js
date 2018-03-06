@@ -115,6 +115,13 @@ class Device extends Component {
                             {...c.props} />
                     </div>
                 );
+            case "Text":
+                if (c.state) {
+                    c.props.value = state[c.state];
+                }
+                return (
+                    <table><tr><th>{c.props.label}</th><td>{c.props.value}</td></tr></table>
+                );
         }
     }
 

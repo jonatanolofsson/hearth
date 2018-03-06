@@ -5,6 +5,7 @@ import json
 import logging
 from sanic import Sanic, response
 from . import hearth
+from .hearth import D
 
 LOGGER = logging.getLogger(__name__)
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +37,7 @@ async def wsocket(_, socket):
                 if 'id' not in data:
                     LOGGER.warning("Recipient not specified: %s", data)
                     continue
-                device = hearth.get_device(data['id'])
+                device = D(data['id'])
                 if device is None:
                     LOGGER.warning("No such recipient: '%s'", data['id'])
                     continue

@@ -18,6 +18,7 @@ class Device:
         self.id = id_  # pylint: disable=invalid-name
         self._refresh_fut = None
         self.state = {}
+        self._eventlisteners = {}
 
     def webmessage(self, data=None):
         """Create a websocket message."""
@@ -25,16 +26,27 @@ class Device:
         data.update({"id": self.id})
         return json.dumps(data)
 
-    def update_state(self, new_state, new_value=None):
+    async def update_state(self, new_state, new_value=None):
         """State."""
         if isinstance(new_state, str):
             new_state = {new_state: new_value}
         self.state.update(new_state)
         self.refresh()
 
-    async def state_set(self, new_state, old_state):
-        """New state has been set."""
-        pass
+    def listen(self, eventname, callback=None):
+        """Register event listener."""
+        if callback is None and isinstance(eventname, dict):
+            for ename, ecb in eventname.items():
+                self.listen(ename, ecb)
+        elif callback is not None:
+            if eventname not in self._eventlisteners:
+                self._eventlisteners[eventname] = []
+            self._eventlisteners[eventname].append(callback)
+
+    def event(self, eventname, *args, **kwargs):
+        """Announce event."""
+        for callback in self._eventlisteners.get(eventname, []):
+            asyncio.ensure_future(callback(*args, **kwargs))
 
     async def set_state(self, upd_state):
         """Set new state."""
@@ -67,15 +79,21 @@ class Device:
         """Ensure refresh is called within a given timeout."""
         async def waiter():
             """Waiter."""
-            await asyncio.sleep(timeout)
-            self.refresh()
+            try:
+                await asyncio.sleep(timeout)
+                self.refresh()
+            except asyncio.CancelledError:
+                pass
 
+        if self._refresh_fut is not None:
+            self._refresh_fut.cancel()
         self._refresh_fut = asyncio.ensure_future(waiter())
 
     def refresh(self):
         """Announce state changes."""
         if self._refresh_fut is not None:
             self._refresh_fut.cancel()
+            self._refresh_fut = None
 
         web.broadcast(self.webmessage(self.serialize()))
 

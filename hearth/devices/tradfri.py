@@ -2,17 +2,13 @@
 import logging
 from hearth import zigbee
 
-__all__ = ['Tradfri', 'TradfriTemperature']
+__all__ = ['Tradfri', 'TradfriTemperature', 'TradfriRemote']
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Tradfri(zigbee.Device):
     """Base Trådfri driver."""
-
-    async def __init__(self, id_, ieee):
-        """Init."""
-        await super().__init__(id_, f"{ieee}-01")
 
     def ui(self):
         """Return ui representation."""
@@ -29,6 +25,11 @@ class Tradfri(zigbee.Device):
                                "step": 1},
                      "state": "bri"}
                 ]}
+
+    async def set_state(self, upd_state):
+        """Set state."""
+        self.expect_refresh(5)
+        await super().set_state(upd_state)
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
@@ -47,7 +48,18 @@ class Tradfri(zigbee.Device):
 
     async def brightness(self, bri, transisiontime=0):
         """Set brightness."""
-        await self.set_state({'bri': bri, 'transisiontime': transisiontime})
+        await self.set_state({'bri': min(max(0, bri), 255),
+                              'transisiontime': transisiontime})
+
+    async def dim_up(self, percent=10, transisiontime=0):
+        """Dim up."""
+        await self.brightness(
+            self.state['bri'] + 255*percent/100, transisiontime)
+
+    async def dim_down(self, percent=10, transisiontime=0):
+        """Dim down."""
+        await self.brightness(
+            self.state['bri'] - 255*percent/100, transisiontime)
 
 
 class TradfriTemperature(Tradfri):
@@ -67,4 +79,58 @@ class TradfriTemperature(Tradfri):
 
     async def temperature(self, ct, transisiontime=0):
         """Set color temperature."""
-        await self.set_state({'ct': ct, 'transisiontime': transisiontime})
+        await self.set_state({'ct': min(max(250, ct), 454),
+                              'transisiontime': transisiontime})
+
+    async def warmer(self, percent=10, transisiontime=0):
+        """Warmer light color."""
+        await self.temperature(self.state['ct'] + 204*percent/100,
+                               transisiontime)
+
+    async def colder(self, percent=10, transisiontime=0):
+        """Colder light color."""
+        await self.temperature(self.state['ct'] - 204*percent/100,
+                               transisiontime)
+
+
+class TradfriRemote(zigbee.Device):
+
+    async def __init__(self, *args, **kwargs):
+        await super().__init__(*args, **kwargs)
+        self.state['battery'] = 100
+
+    # def ui(self):
+        # """Return ui representation."""
+        # return {"ui": [
+                    # {"class": "Text",
+                        # "props": {"label": "Battery", "format": "},
+                     # "state": "bat"},
+                # ]}
+
+    async def update_state(self, upd_state):
+        """Update state."""
+        statenames = {
+            # big button
+            1002: "toggle",
+            1001: "toggle_hold",
+            # top button
+            2001: "up_move",
+            2002: "up",
+            2003: "up_stop",
+            # bottom button
+            3001: "down_move",
+            3002: "down",
+            3003: "down_stop",
+            # left button
+            4001: "left_move",
+            4002: "left",
+            4003: "left_stop",
+            # right button
+            5001: "right_move",
+            5002: "right",
+            5003: "right_stop",
+        }
+        if 'buttonevent' in upd_state:
+            self.event(statenames[upd_state['buttonevent']])
+        else:
+            await super().update_state(upd_state)

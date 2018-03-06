@@ -61,7 +61,7 @@ def add_devices(*devices):
     DEVICES.update(new_devices)
 
 
-def get_device(device):
+def D(device):
     """Get device."""
     return DEVICES.get(device, False)
 

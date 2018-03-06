@@ -40,7 +40,7 @@ class SonOff(Device):
     async def update_power_state(self, _, payload):
         """Update power state."""
         LOGGER.info("%s: New power state: %s", self.name, payload)
-        self.update_state({'on': (payload == "ON")})
+        await self.update_state({'on': (payload == "ON")})
 
     def ui(self):
         """Return jsx ui representation."""

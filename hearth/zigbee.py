@@ -25,14 +25,19 @@ class Device(DeviceBase):
 
     async def ws_callback(self, message):
         """Message received from websocket."""
-        self.update_state(message['state'])
+        if 'state' in message:
+            await self.update_state(message['state'])
+        elif 'config' in message:
+            if 'battery' in message['config']:
+                await self.update_state(
+                    {'battery': message['config']['battery']})
 
-    async def set_state(self, new_state):
+    async def set_state(self, upd_state):
         """Set new state."""
         await (await server()).put(
             f"{self.rest_endpoint}/{self.node_id}/state",
-            new_state)
-        new_state = {key: value for key, value in new_state.items()
+            upd_state)
+        new_state = {key: value for key, value in upd_state.items()
                      if key in self.state}
         await super().set_state(new_state)
 
@@ -47,10 +52,9 @@ class ServerConnection:
         self.rest_uri = f"http://{url}:{rest_port}/api/{api_key}"
         self.session = None
         self.devices = {}
-        self.listeners = {}
+        self._listeners = {}
         self.session = await aiohttp.ClientSession().__aenter__()
         await self.load_config()
-        self.ws_uri = f"ws://{self.url}:{self.config['websocketport']}"
         await self.load_devices()
         asyncio.ensure_future(self.ws_reader())
 
@@ -74,16 +78,17 @@ class ServerConnection:
 
     async def ws_reader(self):
         """Websocket reader."""
+        ws_uri = f"ws://{self.url}:{self.config['websocketport']}"
         while True:
-            LOGGER.debug("Connecting to websocket: %s", self.ws_uri)
-            async with websockets.connect(self.ws_uri) as socket:
+            LOGGER.debug("Connecting to websocket: %s", ws_uri)
+            async with websockets.connect(ws_uri) as socket:
                 while True:
                     try:
                         msg = json.loads(await socket.recv())
                         LOGGER.debug("Got ws message: %s", msg)
                         rest_endpoint = msg['r']
                         node_id = msg['id']
-                        callbacks = self.listeners \
+                        callbacks = self._listeners \
                             .get(rest_endpoint, {}) \
                             .get(node_id, [])
                         for callback in callbacks:
@@ -97,11 +102,11 @@ class ServerConnection:
     def add_listener(self, uniqueid, callback):
         """Add callback on message from device."""
         device = self.get_device(uniqueid)
-        if device['r'] not in self.listeners:
-            self.listeners[device['r']] = {}
-        if device['id'] not in self.listeners[device['r']]:
-            self.listeners[device['r']][device['id']] = []
-        self.listeners[device['r']][device['id']].append(callback)
+        if device['r'] not in self._listeners:
+            self._listeners[device['r']] = {}
+        if device['id'] not in self._listeners[device['r']]:
+            self._listeners[device['r']][device['id']] = []
+        self._listeners[device['r']][device['id']].append(callback)
 
     async def load_config(self):
         """Load server configuration."""
