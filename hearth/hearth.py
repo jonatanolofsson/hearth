@@ -7,6 +7,7 @@ import os
 import importlib.util
 import logging
 import re
+import schedule
 import uvloop
 
 
@@ -70,6 +71,7 @@ def main():
     """Main."""
     args = parse_args()
     load_config_directory(os.path.abspath(args.directory))
+    asyncio.ensure_future(schedule.run())
     loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
