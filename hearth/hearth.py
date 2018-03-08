@@ -93,4 +93,6 @@ def main():
         loop.set_exception_handler(shutdown_exception_handler)
         while not tasks.done() and not loop.is_closed():
             asyncio.get_event_loop().run_forever()
+        asyncio.get_event_loop().run_until_complete(
+            asyncio.gather(*[d.shutdown() for d in DEVICES.values()]))
         asyncio.get_event_loop().close()

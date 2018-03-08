@@ -1,5 +1,7 @@
 """Device base class."""
+import os
 import asyncio
+from datetime import datetime
 import inspect
 import json
 import logging
@@ -19,19 +21,40 @@ class Device:
         self._refresh_fut = None
         self.state = {}
         self._eventlisteners = {}
+        self.history = []
+        await self.load_history()
+
+    def history_filename(self):
+        """Get path to device state history."""
+        filename = "".join(x for x in str(self.id) if x.isalnum())
+        return os.path.abspath(".cache/" + filename)
+
+    async def load_history(self):
+        """Load history from file."""
+        self.history = []
+        hfile = self.history_filename()
+        if os.path.exists(hfile):
+            with open(hfile, 'r') as ifile:
+                self.history = json.load(ifile)
+
+    async def save_history(self):
+        """Save history to file."""
+        hfile = self.history_filename()
+        hdir = os.path.dirname(hfile)
+        if not os.path.exists(hdir):
+            os.makedirs(hdir)
+        with open(hfile, 'w') as ofile:
+            json.dump(self.history, ofile)
+
+    async def shutdown(self):
+        """Shutdown procedure."""
+        await self.save_history()
 
     def webmessage(self, data=None):
         """Create a websocket message."""
         data = data or {}
         data.update({"id": self.id})
         return json.dumps(data)
-
-    async def update_state(self, new_state, new_value=None):
-        """State."""
-        if isinstance(new_state, str):
-            new_state = {new_state: new_value}
-        self.state.update(new_state)
-        self.refresh()
 
     def listen(self, eventname, callback=None):
         """Register event listener."""
@@ -50,7 +73,19 @@ class Device:
 
     async def set_state(self, upd_state):
         """Set new state."""
-        self.state.update(upd_state)
+        await self.update_state(upd_state)
+
+    async def update_state(self, new_state, new_value=None):
+        """State."""
+        if isinstance(new_state, str):
+            new_state = {new_state: new_value}
+        updated_state = self.state.copy()
+        updated_state.update(new_state)
+        LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
+        if updated_state != self.state:
+            self.state = updated_state
+            self.history.append([str(datetime.now()), self.state])
+            self.refresh()
 
     async def set_single_state(self, state, value):
         """Set single state."""

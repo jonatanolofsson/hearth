@@ -17,6 +17,7 @@ setup(
     install_requires=[
         'hbmqtt',
         'asyncinit',
+        'git+https://github.com/jonatanolofsson/schedule.git',
         'aiohttp'
     ],
     tests_require=[

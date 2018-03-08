@@ -19,7 +19,7 @@ class Device(DeviceBase):
         self.server = await server()
         device = self.server.get_device(self.uniqueid)
         self.node_id = device['id']
-        self.state = device['state']
+        await super().update_state(device['state'])
         self.rest_endpoint = device['r']
         self.server.add_listener(self.uniqueid, self.ws_callback)
 

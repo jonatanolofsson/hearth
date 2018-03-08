@@ -14,7 +14,7 @@ class SonOff(Device):
         await super().__init__(id_)
         self.name = name
         self.mqtt = mqttc or await mqtt.server()
-        self.state = {'on': False}
+        await super().update_state({'on': False})
         await self.mqtt.sub(f"stat/{self.name}/POWER", self.update_power_state)
         await self.mqtt.pub(f"cmnd/{self.name}/power", "")
 

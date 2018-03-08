@@ -38,7 +38,7 @@ async def wsocket(_, socket):
                     LOGGER.warning("Recipient not specified: %s", data)
                     continue
                 device = D(data['id'])
-                if device is None:
+                if not device:
                     LOGGER.warning("No such recipient: '%s'", data['id'])
                     continue
                 await device.webhandler(data, socket)
