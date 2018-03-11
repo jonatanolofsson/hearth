@@ -28,18 +28,18 @@ class Tradfri(zigbee.Device):
 
     async def set_state(self, upd_state):
         """Set state."""
-        self.expect_refresh(5)
+        self.expect_update(5)
         await super().set_state(upd_state)
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
-        self.expect_refresh(5)
+        self.expect_update(5)
         LOGGER.info("Putting on light.")
         await self.set_state({'on': True})
 
     async def off(self):
         """Switch off."""
-        self.expect_refresh(5)
+        self.expect_update(5)
         await self.set_state({'on': False})
 
     async def toggle(self):
@@ -99,17 +99,27 @@ class TradfriRemote(zigbee.Device):
         await super().__init__(*args, **kwargs)
         self.state['battery'] = 100
 
-    # def ui(self):
-        # """Return ui representation."""
-        # return {"ui": [
-                    # {"class": "Text",
-                        # "props": {"label": "Battery", "format": "},
-                     # "state": "bat"},
-                # ]}
+    def alerts(self):
+        """List of active alerts."""
+        active_alerts = super().alerts()
+        if self.state['battery'] < 10:
+            active_alerts.append(
+                {"icon": "battery_alert",
+                 "label": f"Low battery: {self.state['battery']} %",
+                 "color": "#f44336"})
+        return active_alerts
 
-    async def update_state(self, upd_state):
+    def ui(self):
+        """Return ui representation."""
+        return {"ui": [
+                    {"class": "Text",
+                     "props": {"label": "Battery", "format": "{} %"},
+                     "state": "battery"},
+                ]}
+
+    async def update_state(self, upd_state, set_seen=True):
         """Update state."""
-        statenames = {
+        eventnames = {
             # big button
             1002: "toggle",
             1001: "toggle_hold",
@@ -131,6 +141,7 @@ class TradfriRemote(zigbee.Device):
             5003: "right_stop",
         }
         if 'buttonevent' in upd_state:
-            self.event(statenames[upd_state['buttonevent']])
+            self.event(eventnames[upd_state['buttonevent']])
+            await super().update_state({}, set_seen)
         else:
-            await super().update_state(upd_state)
+            await super().update_state(upd_state, set_seen)

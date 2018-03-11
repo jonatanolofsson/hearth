@@ -2,6 +2,7 @@
 import os
 import asyncio
 from datetime import datetime
+import dateutil
 import inspect
 import json
 import logging
@@ -18,8 +19,9 @@ class Device:
 
     async def __init__(self, id_):
         self.id = id_  # pylint: disable=invalid-name
-        self._refresh_fut = None
-        self.state = {}
+        self._update_fut = None
+        self.state = {'reachable': False,
+                      'last_seen': ''}
         self._eventlisteners = {}
         self.history = []
         await self.load_history()
@@ -36,6 +38,8 @@ class Device:
         if os.path.exists(hfile):
             with open(hfile, 'r') as ifile:
                 self.history = json.load(ifile)
+        if len(self.history) > 0:
+            self.state = self.history[-1][1]
 
     async def save_history(self):
         """Save history to file."""
@@ -72,28 +76,77 @@ class Device:
             asyncio.ensure_future(callback(*args, **kwargs))
 
     async def set_state(self, upd_state):
-        """Set new state."""
-        await self.update_state(upd_state)
+        """Set new state. This may be overridden to command device to set the
+        state."""
+        await self.update_state(upd_state, False)
 
-    async def update_state(self, new_state, new_value=None):
-        """State."""
-        if isinstance(new_state, str):
-            new_state = {new_state: new_value}
+    async def init_state(self, upd_state):
+        """Set state initial value. Distinguised from set_state through
+        overloading."""
+        await self.update_state(upd_state, False)
+
+    def expect_update(self, timeout):
+        """Ensure refresh is called within a given timeout."""
+        async def waiter(fut):
+            """Waiter."""
+            try:
+                await asyncio.wait_for(fut, timeout)
+            except asyncio.TimeoutError:
+                LOGGER.debug("Did not refresh: %s", self.id)
+                await self.update_state({"reachable": False}, False)
+            finally:
+                if self._update_fut is not None:
+                    self._update_fut.cancel()
+                    self._update_fut = None
+
+        if self._update_fut is None:
+            self._update_fut = asyncio.Future()
+            asyncio.ensure_future(waiter(self._update_fut))
+        LOGGER.debug("Expecting refresh: %s", self.id)
+
+    async def update_state(self, new_state, set_seen=True):
+        """Update the state. This is mainly called when the device informs of a
+        new state, i.e. it should not be commanded to set the state."""
+        LOGGER.debug("Update: %s", self.id)
+        if self._update_fut is not None:
+            self._update_fut.set_result(True)
+            self._update_fut = None
+            LOGGER.debug("Refreshed in time: %s", self.id)
+
         updated_state = self.state.copy()
         updated_state.update(new_state)
-        LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
-        if updated_state != self.state:
-            self.state = updated_state
+        if set_seen:
+            updated_state.update({'reachable': True})
+        refresh = (updated_state != self.state)
+        updated_state.update({'last_seen': str(datetime.now())})
+        self.state = updated_state
+        if refresh:
             self.history.append([str(datetime.now()), self.state])
             self.refresh()
+        LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
 
     async def set_single_state(self, state, value):
         """Set single state."""
         await self.set_state({state: value})
 
+    def alerts(self):
+        """List of current alerts."""
+        active_alerts = []
+        if not self.state['reachable']:
+            active_alerts.append({"icon": "error",
+                                  "label": "Device unreachable",
+                                  "color": "#f44336"})
+            LOGGER.debug("Unreachable device: %s", self.id)
+        return active_alerts
+
     def serialize(self):  # pylint: disable=no-self-use
         """React."""
-        return {'id': self.id, 'state': self.state, 'ui': self.ui()}
+        state = self.state.copy()
+        ui = self.ui()
+        if ui and 'state' in ui:
+            state.update(ui['state'])
+        state.update({'alerts': self.alerts()})
+        return {'id': self.id, 'state': state, 'ui': ui}
 
     def ui(self):  # pylint: disable=no-self-use, invalid-name
         """UI."""
@@ -110,26 +163,8 @@ class Device:
                 if inspect.isawaitable(res):
                     await res
 
-    def expect_refresh(self, timeout):
-        """Ensure refresh is called within a given timeout."""
-        async def waiter():
-            """Waiter."""
-            try:
-                await asyncio.sleep(timeout)
-                self.refresh()
-            except asyncio.CancelledError:
-                pass
-
-        if self._refresh_fut is not None:
-            self._refresh_fut.cancel()
-        self._refresh_fut = asyncio.ensure_future(waiter())
-
     def refresh(self):
         """Announce state changes."""
-        if self._refresh_fut is not None:
-            self._refresh_fut.cancel()
-            self._refresh_fut = None
-
         web.broadcast(self.webmessage(self.serialize()))
 
 

@@ -17,6 +17,7 @@ class Room(Device):
         await super().__init__(id_)
         self.devices = {device.id: device for device in devices}
         hearth.add_devices(*devices)
+        await super().update_state({})
 
     async def off(self):
         """Shut everything down."""

@@ -23,6 +23,7 @@
     "popper.js": "^1.12.9",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
+    "react-easy-chart": "^1.0.0",
     "reconnecting-websocket": "^3.2.2",
     "webpack": "^3.11.0"
   },

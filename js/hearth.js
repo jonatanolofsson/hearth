@@ -5,12 +5,15 @@ import AppBar from 'material-ui/AppBar';
 import {List, ListItem} from 'material-ui/List';
 import FlatButton from 'material-ui/FlatButton';
 import Dialog from 'material-ui/Dialog';
+import FontIcon from 'material-ui/FontIcon';
 import Subheader from 'material-ui/Subheader';
 import TextField from 'material-ui/TextField';
 import IconButton from 'material-ui/IconButton';
 import NavigationClose from 'material-ui/svg-icons/navigation/close';
 import Toggle from 'material-ui/Toggle';
 import Slider from 'material-ui/Slider';
+import {AreaChart} from 'react-easy-chart';
+import {LineChart} from 'react-easy-chart';
 
 const DEVICES = {};
 
@@ -44,6 +47,7 @@ class DeviceHandler {
         this.hearth = hearth;
         this.props = dev
         this._statecb = null;
+        this.state = dev.state;
     }
 
     action(action) {
@@ -56,10 +60,15 @@ class DeviceHandler {
         if (this._statecb) {
             this._statecb(state);
         }
+        this.hearth.forceUpdate();
+        this.state = state;
     }
 
     setCallback(cb) {
         this._statecb = cb;
+        if (this.state) {
+            cb(this.state);
+        }
     }
 
     uiclass() {
@@ -81,11 +90,22 @@ class DeviceHandler {
             this.setState(data['state']);
         }
     }
+
+    alerts() {
+        const res = [];
+        if (this.state && this.state.alerts) {
+            this.state.alerts.forEach(ainfo => {
+                res.push(<FontIcon color={ainfo.color} className="material-icons" label={ainfo.label}>{ainfo.icon}</FontIcon>);
+            });
+        }
+        return res;
+    }
 }
 
 class Device extends Component {
     constructor(props) {
         super(props);
+        this.id = props.id;
         this.handler = DEVICES[props.id];
         this.handler.setCallback(state => this.setState(state));
         this.state = this.handler.props.state;
@@ -117,10 +137,24 @@ class Device extends Component {
                 );
             case "Text":
                 if (c.state) {
-                    c.props.value = state[c.state];
+                    c.props.value = c.props.format.replace(/{}/g, state[c.state]);
                 }
                 return (
-                    <table><tr><th>{c.props.label}</th><td>{c.props.value}</td></tr></table>
+                    <table width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
+                );
+            case "AreaChart":
+                if (c.state) {
+                    c.props.data = state[c.state];
+                }
+                return (
+                    <AreaChart key={key} {...c.props} />
+                );
+            case "LineChart":
+                if (c.state) {
+                    c.props.data = state[c.state];
+                }
+                return (
+                    <LineChart key={key} {...c.props} />
                 );
         }
     }
@@ -157,7 +191,13 @@ class Device extends Component {
                 open={this.state.__open}
                 onRequestClose={this.handleClose}
                 modal={false}
-            >{dom}</Dialog>
+            >
+                {dom}
+                <div>
+                    {this.handler.alerts()}
+                    (Last seen: {this.state.last_seen})
+                </div>
+            </Dialog>
         );
     }
 }
@@ -165,6 +205,7 @@ class Device extends Component {
 class DeviceList extends Component {
     render() {
         const rows = [];
+        const all_bins = [];
         let lastBin = null;
 
         for (var key in this.props.devices) {
@@ -188,8 +229,14 @@ class DeviceList extends Component {
                     //onClick={device.action.bind(device, raction)}> {icon} </IconButton>);
             //}
             //console.log("Extras: ", id, extras, device.props.ui);
-            rows.push( <ListItem
-                primaryText={id}
+            const ptext = (
+                <div>
+                    {device.alerts()}
+                    {id}
+                </div>
+            );
+            rows.push(<ListItem
+                primaryText={ptext}
                 key={id}
                 onClick={device.setState.bind(device, {__open: true})}
                 {...extras}
