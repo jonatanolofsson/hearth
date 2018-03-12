@@ -57,7 +57,6 @@ class ServerConnection:
         self.url = url
         self.api_key = api_key
         self.rest_uri = f"http://{url}:{rest_port}/api/{api_key}"
-        self.session = None
         self.devices = {}
         self._listeners = {}
         self.session = await aiohttp.ClientSession().__aenter__()

@@ -137,7 +137,11 @@ class Device extends Component {
                 );
             case "Text":
                 if (c.state) {
-                    c.props.value = c.props.format.replace(/{}/g, state[c.state]);
+                    if (c.props.format) {
+                        c.props.value = c.props.format.replace(/{}/g, state[c.state]);
+                    } else {
+                        c.props.value = state[c.state];
+                    }
                 }
                 return (
                     <table width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
