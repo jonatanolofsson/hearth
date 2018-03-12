@@ -44,8 +44,10 @@ class SonOff(Device):
 
     async def set_state(self, new_state):
         """Update state."""
-        await (self.on() if new_state['on'] else self.off())
-        await super().set_state(new_state)
+        if 'on' in new_state:
+            await (self.on() if new_state['on'] else self.off())
+        else:
+            await super().set_state(new_state)
 
     async def update_power_state(self, _, payload):
         """Update power state."""
@@ -57,17 +59,15 @@ class SonOff(Device):
         onoffdata = []
         tprev = str(datetime.now()).split('.')[0]
         sprev = self.state['on']
-        onoffdata.append({'x': tprev, 'y': int(sprev)})
         lasttime = str(datetime.now() - timedelta(hours=1)).split('.')[0]
         for t, s, in reversed(self.history):
-            t = t.split('.')[0]
+            t = t.partition('.')[0]
             if t < lasttime:
                 break
-            if s['on'] != sprev:
-                onoffdata.append({'x': tprev, 'y': int(sprev)})
-                onoffdata.append({'x': tprev, 'y': int(s['on'])})
-                tprev = t
-                sprev = s['on']
+            onoffdata.append({'x': tprev, 'y': int(sprev)})
+            onoffdata.append({'x': tprev, 'y': int(s['on'])})
+            tprev = t
+            sprev = s['on']
         onoffdata.append({'x': lasttime, 'y': int(sprev)})
         onoffdata.reverse()
 
@@ -77,14 +77,29 @@ class SonOff(Device):
                     {"class": "Toggle",
                      "props": {"label": "On"},
                      "state": "on"},
-                    {"class": "AreaChart",
+                    {"class": "C3Chart",
                      "state": "onoffdata",
-                     "props": {"datePattern": '%Y-%m-%d %H:%M:%S',
-                               "xType": "time",
-                               "width": 600,
-                               "xticks": 4,
-                               "yticks": 2,
-                               "axes": True,
-                               "tickTimeDisplayFormat": "%H:%M"}}
+                     "props": {
+                         "data": {
+                             "keys": {"x": "x", "value": ["y"]},
+                             "types": {"x": "area"},
+                             "xFormat": '%Y-%m-%d %H:%M:%S',
+                         },
+                         "size": {
+                             "height": 150
+                         },
+                         "axis": {
+                             "x": {
+                                 "type": "timeseries",
+                                 "tick": {"format": "%H:%M", "count": 4}
+                             },
+                             "y": {
+                                 "max": 1,
+                                 "min": 0,
+                                 "tick": {"values": [0, 1]}
+                             }
+                         }
+                     }
+                    }
                 ],
-                "state": {"onoffdata": [onoffdata]}}
+                "state": {"onoffdata": onoffdata}}

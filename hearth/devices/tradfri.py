@@ -26,20 +26,13 @@ class Tradfri(zigbee.Device):
                      "state": "bri"}
                 ]}
 
-    async def set_state(self, upd_state):
-        """Set state."""
-        self.expect_update(5)
-        await super().set_state(upd_state)
-
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
-        self.expect_update(5)
         LOGGER.info("Putting on light.")
         await self.set_state({'on': True})
 
     async def off(self):
         """Switch off."""
-        self.expect_update(5)
         await self.set_state({'on': False})
 
     async def toggle(self):
@@ -54,12 +47,12 @@ class Tradfri(zigbee.Device):
     async def dim_up(self, percent=10, transisiontime=0):
         """Dim up."""
         await self.brightness(
-            self.state['bri'] + 255*percent/100, transisiontime)
+            self.state['bri'] + 255 * percent / 100, transisiontime)
 
     async def dim_down(self, percent=10, transisiontime=0):
         """Dim down."""
         await self.brightness(
-            self.state['bri'] - 255*percent/100, transisiontime)
+            self.state['bri'] - 255 * percent / 100, transisiontime)
 
 
 class TradfriTemperature(Tradfri):
@@ -84,21 +77,17 @@ class TradfriTemperature(Tradfri):
 
     async def warmer(self, percent=10, transisiontime=0):
         """Warmer light color."""
-        await self.temperature(self.state['ct'] + 204*percent/100,
+        await self.temperature(self.state['ct'] + 204 * percent / 100,
                                transisiontime)
 
     async def colder(self, percent=10, transisiontime=0):
         """Colder light color."""
-        await self.temperature(self.state['ct'] - 204*percent/100,
+        await self.temperature(self.state['ct'] - 204 * percent / 100,
                                transisiontime)
 
 
 class TradfriRemote(zigbee.Device):
-
-    async def __init__(self, *args, **kwargs):
-        await super().__init__(*args, **kwargs)
-        self.state['battery'] = 100
-
+    """Trådfri remote driver."""
     def alerts(self):
         """List of active alerts."""
         active_alerts = super().alerts()
@@ -112,10 +101,10 @@ class TradfriRemote(zigbee.Device):
     def ui(self):
         """Return ui representation."""
         return {"ui": [
-                    {"class": "Text",
-                     "props": {"label": "Battery", "format": "{} %"},
-                     "state": "battery"},
-                ]}
+            {"class": "Text",
+             "props": {"label": "Battery", "format": "{} %"},
+             "state": "battery"},
+        ]}
 
     async def update_state(self, upd_state, set_seen=True):
         """Update state."""

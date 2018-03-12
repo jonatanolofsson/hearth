@@ -12,8 +12,8 @@ import IconButton from 'material-ui/IconButton';
 import NavigationClose from 'material-ui/svg-icons/navigation/close';
 import Toggle from 'material-ui/Toggle';
 import Slider from 'material-ui/Slider';
-import {AreaChart} from 'react-easy-chart';
-import {LineChart} from 'react-easy-chart';
+import C3Chart from 'react-c3js';
+import 'c3/c3.css';
 
 const DEVICES = {};
 
@@ -142,19 +142,12 @@ class Device extends Component {
                 return (
                     <table width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
                 );
-            case "AreaChart":
+            case "C3Chart":
                 if (c.state) {
-                    c.props.data = state[c.state];
+                    c.props.data.json = state[c.state];
                 }
                 return (
-                    <AreaChart key={key} {...c.props} />
-                );
-            case "LineChart":
-                if (c.state) {
-                    c.props.data = state[c.state];
-                }
-                return (
-                    <LineChart key={key} {...c.props} />
+                    <C3Chart key={key} {...c.props} />
                 );
         }
     }

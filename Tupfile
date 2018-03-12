@@ -1,2 +1,2 @@
 include_rules
-: js/hearth.js |> !jscompile |> www/hearth.js
+: js/hearth.js |> !jscompile |> www/hearth.js www/hearth.css

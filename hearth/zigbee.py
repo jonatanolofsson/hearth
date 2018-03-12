@@ -19,7 +19,10 @@ class Device(DeviceBase):
         self.server = await server()
         device = self.server.get_device(self.uniqueid)
         self.node_id = device['id']
-        await super().init_state(device['state'])
+        state = device['state'].copy()
+        if 'config' in device:
+            state.update(device['config'])
+        await super().init_state(state)
         self.rest_endpoint = device['r']
         self.server.add_listener(self.uniqueid, self.ws_callback)
 
@@ -29,19 +32,21 @@ class Device(DeviceBase):
             reachable = message['state']['reachable'] \
                 if 'reachable' in message['state'] else False
             await self.update_state(message['state'], reachable)
-        elif 'config' in message:
-            if 'battery' in message['config']:
-                await self.update_state(
-                    {'battery': message['config']['battery']})
+        if 'config' in message:
+            reachable = message['config']['reachable'] \
+                if 'reachable' in message['config'] else False
+            await self.update_state(message['config'], reachable)
 
     async def set_state(self, upd_state):
         """Set new state."""
-        await (await server()).put(
+        self.expect_update(5)
+        res = await (await server()).put(
             f"{self.rest_endpoint}/{self.node_id}/state",
             upd_state)
-        new_state = {key: value for key, value in upd_state.items()
-                     if key in self.state}
-        await super().set_state(new_state)
+        successes = {name.rpartition('/')[2]: state
+                     for line in res
+                     for name, state in line.get("success", {}).items()}
+        await super().update_state(successes)
 
 
 @asyncinit

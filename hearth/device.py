@@ -78,7 +78,7 @@ class Device:
     async def set_state(self, upd_state):
         """Set new state. This may be overridden to command device to set the
         state."""
-        await self.update_state(upd_state, False)
+        pass
 
     async def init_state(self, upd_state):
         """Set state initial value. Distinguised from set_state through
@@ -104,7 +104,7 @@ class Device:
             asyncio.ensure_future(waiter(self._update_fut))
         LOGGER.debug("Expecting refresh: %s", self.id)
 
-    async def update_state(self, new_state, set_seen=True):
+    async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
         new state, i.e. it should not be commanded to set the state."""
         LOGGER.debug("Update: %s", self.id)
@@ -114,15 +114,13 @@ class Device:
             LOGGER.debug("Refreshed in time: %s", self.id)
 
         updated_state = self.state.copy()
-        updated_state.update(new_state)
+        updated_state.update(upd_state)
         if set_seen:
             updated_state.update({'reachable': True})
-        refresh = (updated_state != self.state)
-        updated_state.update({'last_seen': str(datetime.now())})
+            updated_state.update({'last_seen': str(datetime.now())})
         self.state = updated_state
-        if refresh:
-            self.history.append([str(datetime.now()), self.state])
-            self.refresh()
+        self.history.append([str(datetime.now()), self.state])
+        self.refresh()
         LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
 
     async def set_single_state(self, state, value):
@@ -173,6 +171,7 @@ class HearthDevice(Device):
 
     async def __init__(self):
         await super().__init__(0)
+        await super().update_state({})
 
     async def webhandler(self, data, socket):
         """Handle incoming message."""
