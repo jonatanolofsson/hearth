@@ -73,7 +73,9 @@ class Device:
     def event(self, eventname, *args, **kwargs):
         """Announce event."""
         for callback in self._eventlisteners.get(eventname, []):
-            asyncio.ensure_future(callback(*args, **kwargs))
+            res = callback(*args, **kwargs)
+            if inspect.isawaitable(res):
+                asyncio.ensure_future(res)
 
     async def set_state(self, upd_state):
         """Set new state. This may be overridden to command device to set the
@@ -113,6 +115,10 @@ class Device:
             self._update_fut = None
             LOGGER.debug("Refreshed in time: %s", self.id)
 
+        changed_top_states = []
+        for key in upd_state:
+            if key not in self.state or self.state[key] != upd_state[key]:
+                changed_top_states.append(key)
         updated_state = self.state.copy()
         updated_state.update(upd_state)
         if set_seen:
@@ -121,7 +127,9 @@ class Device:
         self.state = updated_state
         self.history.append([str(datetime.now()), self.state])
         self.refresh()
-        self.event('state_updated')
+        self.event('state_updated', self)
+        for key in changed_top_states:
+            self.event('statechange:' + key, self, key)
         LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
 
     async def set_single_state(self, state, value):

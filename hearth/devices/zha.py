@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from hearth.zigbee import Device as ZDevice
 
-__all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHASwitch']
+__all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHAOpenClose', 'ZHAPresence']
 
 
 class ZHASensor(ZDevice):
@@ -69,10 +69,19 @@ class ZHAHumidity(ZHASensor):
         await super().__init__('humidity', *args, **kwargs)
 
 
-class ZHASwitch(ZHASensor):
+class ZHAOpenClose(ZHASensor):
     """Zigbee window/door sensor."""
 
     async def __init__(self, *args, **kwargs):
         """Init."""
         await super().__init__('open', *args, **kwargs)
+        self.divisor = 1
+
+
+class ZHAPresence(ZHASensor):
+    """Zigbee window/door sensor."""
+
+    async def __init__(self, *args, **kwargs):
+        """Init."""
+        await super().__init__('presence', *args, **kwargs)
         self.divisor = 1
