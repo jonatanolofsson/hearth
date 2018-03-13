@@ -61,7 +61,7 @@ class DeviceHandler {
             this._statecb(state);
         }
         this.hearth.forceUpdate();
-        this.state = state;
+        Object.assign(this.state, state);
     }
 
     setCallback(cb) {
@@ -91,11 +91,15 @@ class DeviceHandler {
         }
     }
 
-    alerts() {
+    alerts(key) {
         const res = [];
         if (this.state && this.state.alerts) {
             this.state.alerts.forEach(ainfo => {
-                res.push(<FontIcon color={ainfo.color} className="material-icons" label={ainfo.label}>{ainfo.icon}</FontIcon>);
+                res.push(<FontIcon
+                    key={key + ainfo.icon}
+                    color={ainfo.color}
+                    className="material-icons"
+                    label={ainfo.label}>{ainfo.icon}</FontIcon>);
             });
         }
         return res;
@@ -191,7 +195,7 @@ class Device extends Component {
             >
                 {dom}
                 <div>
-                    {this.handler.alerts()}
+                    {this.handler.alerts("ad" + this.props.id)}
                     (Last seen: {this.state.last_seen})
                 </div>
             </Dialog>
@@ -221,7 +225,7 @@ class DeviceList extends Component {
             //console.log("Extras: ", id, extras, device.props.ui);
             const ptext = (
                 <div>
-                    {device.alerts()}
+                    {device.alerts("al" + device.id)}
                     {id}
                 </div>
             );
