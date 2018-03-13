@@ -4,3 +4,4 @@ from .group import *
 from .tradfri import *
 from .sectoralarm import *
 from .zha import *
+from .chromecast import *
