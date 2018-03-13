@@ -83,7 +83,7 @@ class Device:
     async def init_state(self, upd_state):
         """Set state initial value. Distinguised from set_state through
         overloading."""
-        await self.update_state(upd_state, False)
+        await self.update_state(upd_state, len(self.history) == 0)
 
     def expect_update(self, timeout):
         """Ensure refresh is called within a given timeout."""
@@ -121,6 +121,7 @@ class Device:
         self.state = updated_state
         self.history.append([str(datetime.now()), self.state])
         self.refresh()
+        self.event('state_updated')
         LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
 
     async def set_single_state(self, state, value):

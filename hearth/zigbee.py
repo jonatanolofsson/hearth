@@ -17,7 +17,18 @@ class Device(DeviceBase):
         await super().__init__(id_)
         self.uniqueid = uniqueid
         self.server = await server()
-        device = self.server.get_device(self.uniqueid)
+        self.node_id = None
+        self.rest_endpoint = None
+        asyncio.ensure_future(self.init())
+
+    async def init(self):
+        """Init 2."""
+        device = False
+        while not device:
+            device = self.server.get_device(self.uniqueid)
+            if not device:
+                await asyncio.sleep(60)
+                await self.server.load_devices()
         self.node_id = device['id']
         state = device['state'].copy()
         if 'config' in device:
@@ -39,6 +50,8 @@ class Device(DeviceBase):
 
     async def set_state(self, upd_state):
         """Set new state."""
+        if self.node_id is None:
+            return
         self.expect_update(5)
         res = await (await server()).put(
             f"{self.rest_endpoint}/{self.node_id}/state",
@@ -47,6 +60,16 @@ class Device(DeviceBase):
                      for line in res
                      for name, state in line.get("success", {}).items()}
         await super().update_state(successes)
+
+    def alerts(self):
+        """List of active alerts."""
+        active_alerts = super().alerts()
+        if self.state.get('battery', 100) < 10:
+            active_alerts.append(
+                {"icon": "battery_alert",
+                 "label": f"Low battery: {self.state['battery']} %",
+                 "color": "#f44336"})
+        return active_alerts
 
 
 @asyncinit
@@ -124,11 +147,15 @@ class ServerConnection:
         for source in ['lights', 'sensors']:
             devices = await self.get(source)
             for node_id, device in devices.items():
-                device.update({'id': node_id, 'r': source})
-                self.devices[device['uniqueid']] = device
+                if 'uniqueid' in device:
+                    if device['uniqueid'] not in self.devices:
+                        device.update({'id': node_id, 'r': source})
+                        self.devices[device['uniqueid']] = device
 
     def get_device(self, uniqueid):
         """Get device."""
+        if uniqueid not in self.devices:
+            return False
         return self.devices[uniqueid]
 
 

@@ -88,15 +88,6 @@ class TradfriTemperature(Tradfri):
 
 class TradfriRemote(zigbee.Device):
     """Trådfri remote driver."""
-    def alerts(self):
-        """List of active alerts."""
-        active_alerts = super().alerts()
-        if self.state['battery'] < 10:
-            active_alerts.append(
-                {"icon": "battery_alert",
-                 "label": f"Low battery: {self.state['battery']} %",
-                 "color": "#f44336"})
-        return active_alerts
 
     def ui(self):
         """Return ui representation."""

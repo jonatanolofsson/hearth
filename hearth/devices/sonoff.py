@@ -26,7 +26,7 @@ class SonOff(Device):
         while True:
             self.expect_update(WAIT_TIME)
             await self.mqtt.pub(f"cmnd/{self.name}/power", "")
-            await asyncio.sleep(60 if self.state['reachable'] else 30)
+            await asyncio.sleep(600 if self.state['reachable'] else 30)
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""

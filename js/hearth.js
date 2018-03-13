@@ -144,7 +144,7 @@ class Device extends Component {
                     }
                 }
                 return (
-                    <table width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
+                    <table key={key} width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
                 );
             case "C3Chart":
                 if (c.state) {
@@ -212,9 +212,15 @@ class DeviceList extends Component {
             let bins = id.split('/')
             let bin = bins.length > 1 ? bins.slice(0, -1).join('/') : bins[0];
 
-            if (bin !== lastBin && bin != 0) {
-                rows.push( <Subheader key={"sh" + bin}>{bin}</Subheader> );
+            if (!all_bins.includes(bin) && bin != 0) {
+                const subheader = <Subheader key={"sh" + bin}>{bin}</Subheader>;
+                if (id == lastBin) {
+                    rows.splice(rows.length - 1, 0, subheader);
+                } else {
+                    rows.push(subheader);
+                }
                 lastBin = bin;
+                all_bins.push(bin);
             }
             let extras = {};
             //if (device.props.ui.rightIcon) {
