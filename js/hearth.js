@@ -203,25 +203,12 @@ class DeviceList extends Component {
     render() {
         const rows = [];
         const all_bins = [];
-        let lastBin = null;
+        let last_id = null;
 
         for (var key in this.props.devices) {
             const device = this.props.devices[key];
             const id = String(device.id);
 
-            let bins = id.split('/')
-            let bin = bins.length > 1 ? bins.slice(0, -1).join('/') : bins[0];
-
-            if (!all_bins.includes(bin) && bin != 0) {
-                const subheader = <Subheader key={"sh" + bin}>{bin}</Subheader>;
-                if (id == lastBin) {
-                    rows.splice(rows.length - 1, 0, subheader);
-                } else {
-                    rows.push(subheader);
-                }
-                lastBin = bin;
-                all_bins.push(bin);
-            }
             let extras = {};
             //if (device.props.ui.rightIcon) {
                 //let icon = device.props.ui.rightIcon;
