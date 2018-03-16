@@ -27,14 +27,16 @@ class Device(DeviceBase):
         while not device:
             device = self.server.get_device(self.uniqueid)
             if not device:
-                await asyncio.sleep(60)
+                await asyncio.sleep(3)
                 await self.server.load_devices()
+                await asyncio.sleep(60)
         self.node_id = device['id']
         state = device['state'].copy()
         if 'config' in device:
             state.update(device['config'])
         await super().init_state(state)
         self.rest_endpoint = device['r']
+        LOGGER.debug("Finished init: %s", self.id)
         self.server.add_listener(self.uniqueid, self.ws_callback)
 
     async def ws_callback(self, message):

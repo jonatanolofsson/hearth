@@ -18,7 +18,8 @@ setup(
         'hbmqtt',
         'asyncinit',
         'git+https://github.com/jonatanolofsson/schedule.git',
-        'aiohttp'
+        'aiohttp',
+        'astral',
     ],
     tests_require=[
         'pytest',
