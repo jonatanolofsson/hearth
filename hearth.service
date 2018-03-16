@@ -1,0 +1,11 @@
+[Unit]
+Description=Minimal home automation engine
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/hearthsetup
+ExecStart=/usr/local/bin/hearth
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

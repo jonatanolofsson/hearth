@@ -1,0 +1,6 @@
+hbmqtt
+asyncinit
+git+https://github.com/jonatanolofsson/schedule.git
+aiohttp
+astral
+
