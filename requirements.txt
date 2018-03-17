@@ -3,4 +3,8 @@ asyncinit
 git+https://github.com/jonatanolofsson/schedule.git
 aiohttp
 astral
-
+python-dateutil
+uvloop
+sanic
+git+https://github.com/jonatanolofsson/python-sectoralarm.git
+pychromecast
