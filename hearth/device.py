@@ -2,8 +2,8 @@
 import os
 import asyncio
 from datetime import datetime
-import dateutil
 import inspect
+import dateutil
 import json
 import logging
 from asyncinit import asyncinit
@@ -73,7 +73,8 @@ class Device:
     def event(self, eventname, *args, **kwargs):
         """Announce event."""
         for callback in self._eventlisteners.get(eventname, []):
-            res = callback(*args, **kwargs)
+            nargs = len(inspect.signature(callback).parameters) - len(kwargs)
+            res = callback(*args[:nargs], **kwargs)
             if inspect.isawaitable(res):
                 asyncio.ensure_future(res)
 
@@ -129,7 +130,8 @@ class Device:
         self.refresh()
         self.event('state_updated', self)
         for key in changed_top_states:
-            self.event('statechange:' + key, self, key)
+            self.event('statechange:' + key, self, key, self.state[key])
+            self.event('statechange:' + key + ':' + str(self.state[key]), self, key, self.state[key])
         LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
 
     async def set_single_state(self, state, value):
