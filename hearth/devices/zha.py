@@ -147,6 +147,13 @@ class ZHALight(ZDevice):
                      "state": "bri"}
                 ]}
 
+    async def set_state(self, upd_state):
+        """Set new state."""
+        if 'bri' in upd_state\
+           or 'ct' in upd_state:
+            upd_state['on'] = True
+        await super().set_state(upd_state)
+
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
         await self.set_state({'on': True})
