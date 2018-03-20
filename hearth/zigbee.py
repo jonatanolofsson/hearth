@@ -52,6 +52,7 @@ class Device(DeviceBase):
 
     async def set_state(self, upd_state):
         """Set new state."""
+        LOGGER.debug("Setting new state: %s", upd_state)
         if self.node_id is None:
             return
         self.expect_update(5)
