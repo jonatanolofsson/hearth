@@ -24,12 +24,13 @@ class Device(DeviceBase):
     async def init(self):
         """Init 2."""
         device = False
+        sleeptime = 1
         while not device:
             device = self.server.get_device(self.uniqueid)
             if not device:
-                await asyncio.sleep(3)
-                await self.server.load_devices()
-                await asyncio.sleep(60)
+                await asyncio.sleep(sleeptime)
+                if sleeptime < 30:
+                    sleeptime += 1
         self.node_id = device['id']
         state = device['state'].copy()
         if 'config' in device:
@@ -87,7 +88,7 @@ class ServerConnection:
         self._listeners = {}
         self.session = await aiohttp.ClientSession().__aenter__()
         await self.load_config()
-        await self.load_devices()
+        asyncio.ensure_future(self.load_devices())
         asyncio.ensure_future(self.ws_reader())
 
     async def get(self, endpoint):
@@ -147,13 +148,15 @@ class ServerConnection:
     async def load_devices(self):
         """Load all devices."""
         self.devices = {}
-        for source in ['lights', 'sensors']:
-            devices = await self.get(source)
-            for node_id, device in devices.items():
-                if 'uniqueid' in device:
-                    if device['uniqueid'] not in self.devices:
-                        device.update({'id': node_id, 'r': source})
-                        self.devices[device['uniqueid']] = device
+        while True:
+            for source in ['lights', 'sensors']:
+                devices = await self.get(source)
+                for node_id, device in devices.items():
+                    if 'uniqueid' in device:
+                        if device['uniqueid'] not in self.devices:
+                            device.update({'id': node_id, 'r': source})
+                            self.devices[device['uniqueid']] = device
+            asyncio.sleep(30)
 
     def get_device(self, uniqueid):
         """Get device."""

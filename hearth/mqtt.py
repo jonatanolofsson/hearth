@@ -19,6 +19,9 @@ class ServerConnection:
         self.uri = uri
         self.subscriptions = {}
         self.mqtt = MQTTClient(config={"auto_reconnect": False})
+        for key in logging.Logger.manager.loggerDict:
+            if key.startswith("hbmqtt"):
+                logging.getLogger(key).setLevel(logging.warning)
         await self.mqtt.connect(self.uri)
         asyncio.ensure_future(self._loop())
 
