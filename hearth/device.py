@@ -89,13 +89,13 @@ class Device:
         await self.update_state(upd_state, len(self.history) == 0)
 
     def expect_update(self, timeout):
-        """Ensure refresh is called within a given timeout."""
+        """Ensure update is called within a given timeout."""
         async def waiter(fut):
             """Waiter."""
             try:
                 await asyncio.wait_for(fut, timeout)
             except asyncio.TimeoutError:
-                LOGGER.debug("Did not refresh: %s", self.id)
+                LOGGER.debug("Did not update: %s", self.id)
                 await self.update_state({"reachable": False}, False)
             finally:
                 if self._update_fut is not None:
@@ -105,7 +105,7 @@ class Device:
         if self._update_fut is None:
             self._update_fut = asyncio.Future()
             asyncio.ensure_future(waiter(self._update_fut))
-        LOGGER.debug("Expecting refresh: %s", self.id)
+        LOGGER.debug("Expecting update: %s", self.id)
 
     async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
@@ -116,23 +116,18 @@ class Device:
             self._update_fut = None
             LOGGER.debug("Refreshed in time: %s", self.id)
 
-        changed_top_states = []
-        for key in upd_state:
-            if key not in self.state or self.state[key] != upd_state[key]:
-                changed_top_states.append(key)
-        updated_state = self.state.copy()
-        updated_state.update(upd_state)
         if set_seen:
-            updated_state.update({'reachable': True})
-            updated_state.update({'last_seen': str(datetime.now())})
-        self.state = updated_state
+            upd_state.update({'reachable': True})
+            upd_state.update({'last_seen': str(datetime.now())})
+        self.state.update(upd_state)
         self.history.append([str(datetime.now()), self.state])
         self.refresh()
         self.event('state_updated', self)
-        for key in changed_top_states:
+        for key in upd_state:
             self.event('statechange:' + key, self, key, self.state[key])
-            self.event('statechange:' + key + ':' + str(self.state[key]), self, key, self.state[key])
-        LOGGER.debug("%s: Updated state: %s", self.id, updated_state)
+            self.event('statechange:' + key + ':' + str(self.state[key]),
+                       self, key, self.state[key])
+        LOGGER.debug("%s: Updated state: %s", self.id, upd_state)
 
     async def set_single_state(self, state, value):
         """Set single state."""
