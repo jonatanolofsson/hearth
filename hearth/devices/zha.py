@@ -102,24 +102,24 @@ class ZHASwitch(ZDevice):
         """Update state."""
         eventnames = {
             # big button
-            1002: "toggle",
             1001: "toggle_hold",
+            1002: "toggle",
             # top button
-            2001: "up_move",
+            2001: "up_hold",
             2002: "up",
-            2003: "up_stop",
+            2003: "up_release",
             # bottom button
-            3001: "down_move",
+            3001: "down_hold",
             3002: "down",
-            3003: "down_stop",
+            3003: "down_release",
             # left button
-            4001: "left_move",
+            4001: "left_hold",
             4002: "left",
-            4003: "left_stop",
+            4003: "left_release",
             # right button
-            5001: "right_move",
+            5001: "right_hold",
             5002: "right",
-            5003: "right_stop",
+            5003: "right_release",
         }
         if 'buttonevent' in upd_state:
             self.event(eventnames[upd_state['buttonevent']])
