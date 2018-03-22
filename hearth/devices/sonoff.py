@@ -42,12 +42,12 @@ class SonOff(Device):
         """Toggle."""
         await (self.off() if self.state['on'] else self.on())
 
-    async def set_state(self, new_state):
+    async def set_state(self, upd_state):
         """Update state."""
-        if 'on' in new_state:
-            await (self.on() if new_state['on'] else self.off())
+        if 'on' in upd_state:
+            await (self.on() if upd_state['on'] else self.off())
         else:
-            await super().set_state(new_state)
+            await super().set_state(upd_state)
 
     async def update_power_state(self, _, payload):
         """Update power state."""

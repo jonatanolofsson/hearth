@@ -1,6 +1,7 @@
 """MQTT Client class."""
 import asyncio
 import logging
+import json
 from asyncinit import asyncinit
 from hbmqtt.client import MQTTClient
 
@@ -53,6 +54,8 @@ class ServerConnection:
 
     async def pub(self, topic, payload, qos=0):
         """Publish message on topic."""
+        if isinstance(payload, dict):
+            payload = json.dumps(payload)
         asyncio.ensure_future(self.mqtt.publish(topic, payload.encode(), qos))
 
     async def sub(self, topic, callback, qos=0):
