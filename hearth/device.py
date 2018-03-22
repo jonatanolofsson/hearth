@@ -114,7 +114,6 @@ class Device:
         if self._update_fut is not None:
             self._update_fut.set_result(True)
             self._update_fut = None
-            LOGGER.debug("Refreshed in time: %s", self.id)
 
         if set_seen:
             upd_state.update({'reachable': True})
