@@ -121,7 +121,7 @@ class Device:
         self.state.update(upd_state)
         self.history.append([str(datetime.now()), self.state])
         self.refresh()
-        self.event('state_updated', self)
+        self.event('statechange', self)
         for key in upd_state:
             self.event('statechange:' + key, self, key, self.state[key])
             self.event('statechange:' + key + ':' + str(self.state[key]),

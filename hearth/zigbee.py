@@ -113,24 +113,29 @@ class ServerConnection:
         """Websocket reader."""
         ws_uri = f"ws://{self.url}:{self.config['websocketport']}"
         while True:
-            LOGGER.debug("Connecting to websocket: %s", ws_uri)
-            async with websockets.connect(ws_uri) as socket:
-                while True:
-                    try:
-                        msg = json.loads(await socket.recv())
-                        LOGGER.debug("Got ws message: %s", msg)
-                        rest_endpoint = msg['r']
-                        node_id = msg['id']
-                        callbacks = self._listeners \
-                            .get(rest_endpoint, {}) \
-                            .get(node_id, [])
-                        for callback in callbacks:
-                            asyncio.ensure_future(callback(msg))
-                    except json.JSONDecodeError as error:
-                        LOGGER.warning("Invalid json format: %s", error)
-                    except AttributeError as error:
-                        LOGGER.warning("Invalid message: %s", error)
-            await asyncio.sleep(1)
+            try:
+                LOGGER.debug("Connecting to websocket: %s", ws_uri)
+                async with websockets.connect(ws_uri) as socket:
+                    while True:
+                        try:
+                            msg = json.loads(await socket.recv())
+                            LOGGER.debug("Got ws message: %s", msg)
+                            rest_endpoint = msg['r']
+                            node_id = msg['id']
+                            callbacks = self._listeners \
+                                .get(rest_endpoint, {}) \
+                                .get(node_id, [])
+                            for callback in callbacks:
+                                asyncio.ensure_future(callback(msg))
+                        except json.JSONDecodeError as error:
+                            LOGGER.warning("Invalid json format: %s", error)
+                        except AttributeError as error:
+                            LOGGER.warning("Invalid message: %s", error)
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except:
+                pass
 
     def add_listener(self, uniqueid, callback):
         """Add callback on message from device."""
@@ -156,7 +161,7 @@ class ServerConnection:
                         if device['uniqueid'] not in self.devices:
                             device.update({'id': node_id, 'r': source})
                             self.devices[device['uniqueid']] = device
-            asyncio.sleep(30)
+            await asyncio.sleep(30)
 
     def get_device(self, uniqueid):
         """Get device."""
