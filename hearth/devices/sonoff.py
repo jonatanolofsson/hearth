@@ -59,22 +59,22 @@ class SonOff(Device):
         onoffdata = []
         t = tprev = str(datetime.now()).split('.')[0]
         sprev = self.state['on']
-        lstart = (tprev, sprev)
+        lstart = (tprev, int(sprev))
         lasttime = str(datetime.now() - timedelta(hours=1)).split('.')[0]
         for t, s, in reversed(self.history):
             t = t.partition('.')[0]
             if sprev != s['on']:
-                onoffdata.append({'x': lstart[0], 'y': int(lstart[1])})
-                onoffdata.append({'x': tprev, 'y': int(lstart[1])})
-                lstart = (tprev, s['on'])
+                onoffdata.append({'x': lstart[0], 'y': lstart[1]})
+                onoffdata.append({'x': tprev, 'y': lstart[1]})
+                lstart = (tprev, int(s['on']))
             tprev = t
             sprev = s['on']
             if t < lasttime:
                 t = lasttime
                 break
-        onoffdata.append({'x': lstart[0], 'y': int(lstart[1])})
+        onoffdata.append({'x': lstart[0], 'y': lstart[1]})
         if t != tprev:
-            onoffdata.append({'x': t, 'y': int(lstart[1])})
+            onoffdata.append({'x': t, 'y': lstart[1]})
         onoffdata.reverse()
 
         return {"rightIcon": "indeterminate_check_box",

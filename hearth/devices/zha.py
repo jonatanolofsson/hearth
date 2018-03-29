@@ -11,19 +11,39 @@ class ZHASensor(ZDevice):
         """Init."""
         self.mainstate = mainstate
         self.divisor = 100
+        self.discrete = True
         await super().__init__(*args, **kwargs)
 
     def ui(self):
         """Return ui representation."""
         plotdata = []
         lasttime = str(datetime.now() - timedelta(hours=1)).split('.')[0]
-        for t, s, in reversed(self.history):
-            if self.mainstate not in s:
-                continue
-            t = t.partition('.')[0]
-            if t < lasttime:
-                break
-            plotdata.append({'x': t, 'y': s[self.mainstate] / self.divisor})
+        if self.discrete:
+            t = tprev = str(datetime.now()).split('.')[0]
+            sprev = self.state[self.mainstate ]
+            lstart = (tprev, int(sprev))
+            for t, s, in reversed(self.history):
+                t = t.partition('.')[0]
+                if sprev != s['on']:
+                    plotdata.append({'x': lstart[0], 'y': lstart[1]})
+                    plotdata.append({'x': tprev, 'y': lstart[1]})
+                    lstart = (tprev, int(s[self.mainstate ]))
+                tprev = t
+                sprev = s[self.mainstate ]
+                if t < lasttime:
+                    t = lasttime
+                    break
+            plotdata.append({'x': lstart[0], 'y': lstart[1]})
+            if t != tprev:
+                plotdata.append({'x': t, 'y': lstart[1]})
+        else:
+            for t, s, in reversed(self.history):
+                if self.mainstate not in s:
+                    continue
+                t = t.partition('.')[0]
+                if t < lasttime:
+                    break
+                plotdata.append({'x': t, 'y': s[self.mainstate] / self.divisor})
         plotdata.reverse()
 
         return {
@@ -59,6 +79,7 @@ class ZHATemperature(ZHASensor):
     async def __init__(self, *args, **kwargs):
         """Init."""
         await super().__init__('temperature', *args, **kwargs)
+        self.discrete = False
 
 
 class ZHAHumidity(ZHASensor):
@@ -67,6 +88,7 @@ class ZHAHumidity(ZHASensor):
     async def __init__(self, *args, **kwargs):
         """Init."""
         await super().__init__('humidity', *args, **kwargs)
+        self.discrete = False
 
 
 class ZHAOpenClose(ZHASensor):
@@ -75,7 +97,6 @@ class ZHAOpenClose(ZHASensor):
     async def __init__(self, *args, **kwargs):
         """Init."""
         await super().__init__('open', *args, **kwargs)
-        self.divisor = 1
 
 
 class ZHAPresence(ZHASensor):
@@ -84,7 +105,6 @@ class ZHAPresence(ZHASensor):
     async def __init__(self, *args, **kwargs):
         """Init."""
         await super().__init__('presence', *args, **kwargs)
-        self.divisor = 1
 
 
 class ZHASwitch(ZDevice):
