@@ -63,4 +63,9 @@ class Room(Device):
                     {"class": "FlatButton",
                      "props": {"label": "On"},
                      "action": "on"}
-                ]}
+                ] + ([
+                    {"class": "SelectField",
+                     "props": {"floatingLabelText": "Scene"},
+                     "items": self.scenes,
+                     "state": "scene"}
+                ] if len(self.scenes) > 1 else [])}

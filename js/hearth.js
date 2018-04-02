@@ -12,6 +12,8 @@ import IconButton from 'material-ui/IconButton';
 import NavigationClose from 'material-ui/svg-icons/navigation/close';
 import Toggle from 'material-ui/Toggle';
 import Slider from 'material-ui/Slider';
+import SelectField from 'material-ui/SelectField';
+import MenuItem from 'material-ui/MenuItem';
 import C3Chart from 'react-c3js';
 import 'c3/c3.css';
 
@@ -119,12 +121,18 @@ class Device extends Component {
     UIComponent(c, state, key, action) {
         switch (c.class) {
             case "FlatButton":
-                return <FlatButton key={key} onClick={(e) => action()} {...c.props} />;
+                return <FlatButton
+                    key={key}
+                    onClick={(e) => action()}
+                    {...c.props} />;
             case "Toggle":
                 if (c.state) {
                     c.props.toggled = state[c.state];
                 }
-                return <Toggle key={key} onToggle={(e,v) => action(v)} {...c.props} />;
+                return <Toggle
+                    key={key}
+                    onToggle={(e,v) => action(v)}
+                    {...c.props} />;
             case "Slider":
                 if (c.state) {
                     c.props.value = state[c.state];
@@ -155,8 +163,26 @@ class Device extends Component {
                     c.props.data.json = state[c.state];
                 }
                 return (
-                    <C3Chart key={key} {...c.props} />
-                );
+                    <C3Chart
+                        key={key}
+                        {...c.props} />
+                    );
+            case "SelectField":
+                if (c.state) {
+                    c.props.value=state[c.state];
+                }
+                var menuitems = [];
+
+                c.items.forEach(value => {
+                    menuitems.push(<MenuItem value={value} primaryText={value} />);
+                });
+                return (<SelectField
+                    key={key}
+                    onChange={(e, i, v) => action(v)}
+                    {...c.props}>
+                        {menuitems}
+                    </SelectField>
+                    );
         }
     }
 
@@ -175,6 +201,7 @@ class Device extends Component {
                                  this.state,
                                  "uic-" + this.id + "-" + ci,
                                  this.handler.action.bind(this.handler, c.action, ...arg0)));
+            dom.push(<br />);
         }
 
         const actions = [
