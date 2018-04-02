@@ -73,6 +73,7 @@ class Device:
     def event(self, eventname, *args, **kwargs):
         """Announce event."""
         for callback in self._eventlisteners.get(eventname, []):
+            LOGGER.debug("Event: %s. Scheduling callback: %s", eventname, callback)
             nargs = len(inspect.signature(callback).parameters) - len(kwargs)
             res = callback(*args[:nargs], **kwargs)
             if inspect.isawaitable(res):
@@ -123,8 +124,8 @@ class Device:
         self.refresh()
         self.event('statechange', self)
         for key in upd_state:
-            self.event('statechange:' + key, self, key, self.state[key])
-            self.event('statechange:' + key + ':' + str(self.state[key]),
+            self.event(f'statechange:{key}', self, key, self.state[key])
+            self.event(f'statechange:{key}:{self.state[key]}',
                        self, key, self.state[key])
         LOGGER.debug("%s: Updated state: %s", self.id, upd_state)
 
