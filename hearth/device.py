@@ -171,6 +171,10 @@ class Device:
         """Announce state changes."""
         web.broadcast(self.webmessage(self.serialize()))
 
+    def __getitem__(self, key):
+        """Map [] to state."""
+        return self.state[key]
+
 
 class HearthDevice(Device):
     """Device to handle the base functionality of hearth"""
