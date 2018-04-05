@@ -5,6 +5,7 @@ import asyncio
 import glob
 import os
 import importlib.util
+import inspect
 import logging
 import re
 import schedule
@@ -13,9 +14,56 @@ import uvloop
 
 asyncio.set_event_loop(uvloop.new_event_loop())
 # asyncio.get_event_loop().set_debug(True)
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 LOGGER = logging.getLogger(__name__)
+
+
+def call_at2(loop, when, callback, *args):
+    """Call callback or coroutine later."""
+    def _callback(*args2, **kwargs2):
+        res = callback(*args2, **kwargs2)
+        if inspect.isawaitable(res):
+            asyncio.ensure_future(res)
+
+    return loop.call_at_(when, _callback, *args)
+
+
+def call_at(*args):
+    """Call callback or coroutine later."""
+    return call_at2(asyncio.get_event_loop(), *args)
+
+
+def _call_at_mp(self, *args):
+    """asyncio call_later monkey patch that works with coroutines."""
+    return call_at2(self, *args)
+
+
+def call_later2(loop, timeout, callback, *args):
+    """Call callback or coroutine later."""
+    def _callback(*args2, **kwargs2):
+        res = callback(*args2, **kwargs2)
+        if inspect.isawaitable(res):
+            asyncio.ensure_future(res)
+
+    return loop.call_later_(timeout, _callback, *args)
+
+
+def call_later(*args):
+    """Call callback or coroutine later."""
+    return call_later2(asyncio.get_event_loop(), *args)
+
+
+def _call_later_mp(self, *args):
+    """asyncio call_later monkey patch that works with coroutines."""
+    return call_later2(self, *args)
+
+
+asyncio.get_event_loop().__class__.call_later_ = asyncio.get_event_loop().__class__.call_later
+asyncio.get_event_loop().__class__.call_later = _call_later_mp
+asyncio.get_event_loop().__class__.call_at_ = asyncio.get_event_loop().__class__.call_at
+asyncio.get_event_loop().__class__.call_at = _call_at_mp
 
 DEVICES = {}
 
