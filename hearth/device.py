@@ -146,19 +146,33 @@ class Device:
     def serialize(self):  # pylint: disable=no-self-use
         """React."""
         state = self.state.copy()
-        ui = self.ui()
-        if ui and 'state' in ui:
-            state.update(ui['state'])
+        ui_ = self.ui()
+        if ui_ and 'state' in ui_:
+            state.update(ui_['state'])
         state.update({'alerts': self.alerts()})
-        return {'id': self.id, 'state': state, 'ui': ui}
+        return {'id': self.id, 'state': state, 'ui': ui_}
 
     def ui(self):  # pylint: disable=no-self-use, invalid-name
         """UI."""
         return False
 
+    def events_ui(self):
+        """Return UI for triggering events."""
+        events = [event
+                  for event, listeners in self._eventlisteners.items()
+                  if len(listeners) > 0 and len(inspect.signature(listeners[0]).parameters) == 0]
+        if not events:
+            return []
+        return [
+            {"class": "SelectField",
+             "props": {"floatingLabelText": "Event"},
+             "action": "event",
+             "items": events}]
+
     async def webhandler(self, data, _):
         """Default webhandler."""
         if 'm' in data and not data['m'].startswith('_'):
+            LOGGER.info("Got webmessage: %s", data)
             fun = getattr(self, data['m'], None)
             if callable(fun):
                 args = data.get('args', [])
@@ -190,6 +204,12 @@ class HearthDevice(Device):
                 {"m": "devices",
                  "devices": [d.serialize()
                              for d in hearth.DEVICES.values()]}))
+        else:
+            await super().webhandler(data, socket)
+
+    def ui(self):
+        """UI."""
+        return {"ui": self.events_ui()}
 
 
 async def setup():

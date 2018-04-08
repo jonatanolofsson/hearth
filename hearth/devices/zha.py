@@ -112,7 +112,7 @@ class ZHASwitch(ZDevice):
 
     def ui(self):
         """Return ui representation."""
-        return {"ui": [
+        return {"ui": self.events_ui() + [
             {"class": "Text",
              "props": {"label": "Battery", "format": "{} %"},
              "state": "battery"},

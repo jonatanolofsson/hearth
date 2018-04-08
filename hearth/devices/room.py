@@ -68,4 +68,5 @@ class Room(Device):
                      "props": {"floatingLabelText": "Scene"},
                      "items": self.scenes,
                      "state": "scene"}
-                ] if len(self.scenes) > 1 else [])}
+                ] if len(self.scenes) > 1 else [])
+                + self.events_ui()}
