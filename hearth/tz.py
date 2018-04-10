@@ -1,6 +1,6 @@
 """Hearth timezone module."""
 import sys
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time
 import astral
 import pytz
 
@@ -31,6 +31,10 @@ class TZ:
     def now(self):
         """Return localized time."""
         return self.localize(datetime.now())
+
+    def time(self, *args, **kwargs):
+        """Return time object."""
+        return time(*args, **kwargs)
 
     def localize(self, time):
         """Localize to local time."""
