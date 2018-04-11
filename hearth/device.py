@@ -1,6 +1,7 @@
 """Device base class."""
 import os
 import asyncio
+from copy import deepcopy
 from datetime import datetime
 import inspect
 import dateutil
@@ -87,7 +88,9 @@ class Device:
     async def init_state(self, upd_state):
         """Set state initial value. Distinguised from set_state through
         overloading."""
-        await self.update_state(upd_state, len(self.history) == 0)
+        upd_state = {key: value for key, value in upd_state.items() if key not in self.state}
+        if upd_state:
+            await self.update_state(upd_state, len(self.history) == 0)  # pylint: disable=len-as-condition
 
     def expect_update(self, timeout):
         """Ensure update is called within a given timeout."""
@@ -114,21 +117,27 @@ class Device:
             self._update_fut.set_result(True)
             self._update_fut = None
 
-        upd_state = {state: value
-                     for state, value in upd_state.items()
-                     if state not in self.state or self.state[state] != value}
+        actually_updated = {
+            state: value
+            for state, value in upd_state.items()
+            if state not in self.state or self.state[state] != value}
 
         if set_seen:
             upd_state.update({'reachable': True})
             upd_state.update({'last_seen': str(datetime.now())})
+        old_state = deepcopy(self.state)
         self.state.update(upd_state)
         self.history.append([str(datetime.now()), self.state])
         self.refresh()
         self.event('statechange', self)
-        for key in upd_state:
-            self.event(f'statechange:{key}', self, key, self.state[key])
+        for key in actually_updated:
+            self.event(f'statechange:{key}', self, key, self.state[key], old_state.get(key, None))
             self.event(f'statechange:{key}:{self.state[key]}',
-                       self, key, self.state[key])
+                       self, key, self.state[key], old_state.get(key, None))
+        for key in upd_state:
+            self.event(f'stateupdate:{key}', self, key, self.state[key], old_state.get(key, None))
+            self.event(f'stateupdate:{key}:{self.state[key]}',
+                       self, key, self.state[key], old_state.get(key, None))
 
     async def set_single_state(self, state, value):
         """Set single state."""
