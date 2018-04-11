@@ -116,6 +116,10 @@ class Device:
             self._update_fut.set_result(True)
             self._update_fut = None
 
+        upd_state = {state: value
+                     for state, value in upd_state.items()
+                     if state not in self.state or self.state[state] != value}
+
         if set_seen:
             upd_state.update({'reachable': True})
             upd_state.update({'last_seen': str(datetime.now())})
