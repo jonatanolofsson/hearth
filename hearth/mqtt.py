@@ -28,7 +28,6 @@ class ServerConnection:
 
     async def _loop(self):
         """Connection handling loop."""
-        LOGGER.debug("MQTT loop")
         while True:
             try:
                 if self.subscriptions:
@@ -36,7 +35,6 @@ class ServerConnection:
                         [(t, qos)
                          for t, (_, qos) in self.subscriptions.items()])
                 while True:
-                    LOGGER.debug("Waiting for MQTT messages")
                     message = await self.mqtt.deliver_message()
                     topic = message.publish_packet.variable_header.topic_name
                     payload = message.publish_packet.payload.data.decode()

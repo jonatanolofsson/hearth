@@ -42,7 +42,8 @@ class SectorAlarm(hearth.Device):
             new_state['temperatures'] = [
                 {key: temp[key] for key in ['serialNo', 'label', 'temperature']}
                 for temp in temps]
-            LOGGER.debug("Got SA state: %s", new_state)
+            if 'armed' in new_state and new_state['armed'] != self.state['armed']:
+                LOGGER.debug("Got SA state: %s", new_state)
             await self.update_state(new_state)
         except:
             await self.update_state({"reachable": False}, False)

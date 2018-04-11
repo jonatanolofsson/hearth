@@ -106,12 +106,10 @@ class Device:
         if self._update_fut is None:
             self._update_fut = asyncio.Future()
             asyncio.ensure_future(waiter(self._update_fut))
-        LOGGER.debug("Expecting update: %s", self.id)
 
     async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
         new state, i.e. it should not be commanded to set the state."""
-        LOGGER.debug("Update: %s", self.id)
         if self._update_fut is not None:
             self._update_fut.set_result(True)
             self._update_fut = None
@@ -131,7 +129,6 @@ class Device:
             self.event(f'statechange:{key}', self, key, self.state[key])
             self.event(f'statechange:{key}:{self.state[key]}',
                        self, key, self.state[key])
-        LOGGER.debug("%s: Updated state: %s", self.id, upd_state)
 
     async def set_single_state(self, state, value):
         """Set single state."""
