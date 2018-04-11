@@ -127,7 +127,7 @@ class Device:
             upd_state.update({'last_seen': str(datetime.now())})
         old_state = deepcopy(self.state)
         self.state.update(upd_state)
-        self.history.append([str(datetime.now()), self.state])
+        self.history.append([str(datetime.now()), deepcopy(self.state)])
         self.refresh()
         self.event('statechange', self)
         for key in actually_updated:
