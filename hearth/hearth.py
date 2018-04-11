@@ -2,12 +2,14 @@
 """Hearth core."""
 import argparse
 import asyncio
+import functools
 import glob
 import os
 import importlib.util
 import inspect
 import logging
 import re
+import signal
 import schedule
 import uvloop
 
@@ -110,7 +112,7 @@ def add_devices(*devices):
     DEVICES.update(new_devices)
 
 
-def D(device):
+def D(device):  # pylint: disable=invalid-name
     """Get device."""
     return DEVICES.get(device, False)
 
@@ -121,6 +123,16 @@ def main():
     load_config_directory(os.path.abspath(args.directory))
     asyncio.ensure_future(schedule.run())
     loop = asyncio.get_event_loop()
+
+    def ask_exit(signame):
+        """Signal handler."""
+        print("got signal %s: exit" % signame)
+        loop.stop()
+
+    for signame in ('SIGINT', 'SIGTERM'):
+        loop.add_signal_handler(getattr(signal, signame),
+                                functools.partial(ask_exit, signame))
+
     try:
         loop.run_forever()
     except KeyboardInterrupt:
