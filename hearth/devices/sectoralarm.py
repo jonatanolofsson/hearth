@@ -45,7 +45,8 @@ class SectorAlarm(hearth.Device):
             if 'armed' in new_state and new_state['armed'] != self.state['armed']:
                 LOGGER.debug("Got SA state: %s", new_state)
             await self.update_state(new_state)
-        except:
+        except Exception as e:
+            LOGGER.warning("SectorAlarm exception: %s", e)
             await self.update_state({"reachable": False}, False)
 
     async def syncer(self):

@@ -119,7 +119,6 @@ class ServerConnection:
                     while True:
                         try:
                             msg = json.loads(await socket.recv())
-                            LOGGER.debug("Got ws message: %s", msg)
                             rest_endpoint = msg['r']
                             node_id = msg['id']
                             callbacks = self._listeners \

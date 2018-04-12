@@ -16,7 +16,7 @@ import uvloop
 
 asyncio.set_event_loop(uvloop.new_event_loop())
 # asyncio.get_event_loop().set_debug(True)
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 LOGGER = logging.getLogger(__name__)
