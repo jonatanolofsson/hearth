@@ -15,6 +15,12 @@ class SectorAlarm(hearth.Device):
     async def __init__(self, id_, username, password, panel):
         """Init."""
         await super().__init__(id_)
+        await self.init_state({
+            'armed': "disarmed",
+            'armed_time': "",
+            'armed_by': "",
+            'temperatures': []
+        })
         self.username = username
         self.password = password
         self.panel = panel
