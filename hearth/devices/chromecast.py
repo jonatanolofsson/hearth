@@ -17,7 +17,6 @@ def load_devices():
         loop = asyncio.get_event_loop()
         devs = await loop.run_in_executor(None, pychromecast.get_chromecasts)
 
-        print("Got devices: ", devs)
         DEVICES = {str(dev.uuid): dev for dev in devs}
         load_devices.active = False
 
