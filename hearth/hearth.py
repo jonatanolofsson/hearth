@@ -112,6 +112,12 @@ def add_devices(*devices):
     DEVICES.update(new_devices)
 
 
+async def wait_for(device):
+    """Wait for device init."""
+    while device not in DEVICES:
+        await asyncio.sleep(1)
+
+
 def D(device):  # pylint: disable=invalid-name
     """Get device."""
     return DEVICES.get(device, False)
