@@ -42,5 +42,5 @@ class Group(Device):
 
     def __getattr__(self, attr):
         if not hasattr(self.devices[0], attr):
-            raise KeyError(f"No such attribute: {attr}")
+            raise AttributeError(f"No such attribute: {attr}")
         return functools.partial(self.broadcast, attr)
