@@ -4,7 +4,6 @@ import asyncio
 from copy import deepcopy
 from datetime import datetime
 import inspect
-import dateutil
 import json
 import logging
 from asyncinit import asyncinit
@@ -85,30 +84,17 @@ class Device:
         state."""
         pass
 
+    async def set_single_state(self, state, value):
+        """Set single state."""
+        await self.set_state({state: value})
+
     async def init_state(self, upd_state):
         """Set state initial value. Distinguised from set_state through
         overloading."""
         upd_state = {key: value for key, value in upd_state.items() if key not in self.state}
         if upd_state:
-            await self.update_state(upd_state, len(self.history) == 0)  # pylint: disable=len-as-condition
-
-    def expect_update(self, timeout):
-        """Ensure update is called within a given timeout."""
-        async def waiter(fut):
-            """Waiter."""
-            try:
-                await asyncio.wait_for(fut, timeout)
-            except asyncio.TimeoutError:
-                LOGGER.debug("Did not update: %s", self.id)
-                await self.update_state({"reachable": False}, False)
-            finally:
-                if self._update_fut is not None:
-                    self._update_fut.cancel()
-                    self._update_fut = None
-
-        if self._update_fut is None:
-            self._update_fut = asyncio.Future()
-            asyncio.ensure_future(waiter(self._update_fut))
+            self.state.update(upd_state)
+            self.history.append([str(datetime.now()), deepcopy(self.state)])
 
     async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
@@ -139,9 +125,23 @@ class Device:
             self.event(f'stateupdate:{key}:{self.state[key]}',
                        self, key, self.state[key], old_state.get(key, None))
 
-    async def set_single_state(self, state, value):
-        """Set single state."""
-        await self.set_state({state: value})
+    def expect_update(self, timeout):
+        """Ensure update is called within a given timeout."""
+        async def waiter(fut):
+            """Waiter."""
+            try:
+                await asyncio.wait_for(fut, timeout)
+            except asyncio.TimeoutError:
+                LOGGER.debug("Did not update: %s", self.id)
+                await self.update_state({"reachable": False}, False)
+            finally:
+                if self._update_fut is not None:
+                    self._update_fut.cancel()
+                    self._update_fut = None
+
+        if self._update_fut is None:
+            self._update_fut = asyncio.Future()
+            asyncio.ensure_future(waiter(self._update_fut))
 
     def alerts(self):
         """List of current alerts."""
