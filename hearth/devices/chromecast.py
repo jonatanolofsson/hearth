@@ -15,7 +15,7 @@ class Chromecast(Device):
         await super().__init__(id_)
         await self.init_state({}, True)
         self.ip = ip
-        self.device = pychromecast.Chromecast(self.ip)
+        self.device = pychromecast.Chromecast(self.ip, blocking=False)
 
     @property
     def is_idle(self):
