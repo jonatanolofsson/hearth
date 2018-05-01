@@ -88,10 +88,15 @@ class Device:
         """Set single state."""
         await self.set_state({state: value})
 
-    async def init_state(self, upd_state):
+    async def init_state(self, upd_state, set_seen=False):
         """Set state initial value. Distinguised from set_state through
         overloading."""
+        if set_seen:
+            upd_state.update({'reachable': True})
+            upd_state.update({'last_seen': str(datetime.now())})
+
         upd_state = {key: value for key, value in upd_state.items() if key not in self.state}
+
         if upd_state:
             self.state.update(upd_state)
             self.history.append([str(datetime.now()), deepcopy(self.state)])

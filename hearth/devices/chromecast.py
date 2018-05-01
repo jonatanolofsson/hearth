@@ -13,6 +13,7 @@ class Chromecast(Device):
     async def __init__(self, id_, ip):
         """Init."""
         await super().__init__(id_)
+        await self.init_state({}, True)
         self.ip = ip
         self.device = pychromecast.Chromecast(self.ip)
 
