@@ -68,11 +68,14 @@ class Device(DeviceBase):
     def alerts(self):
         """List of active alerts."""
         active_alerts = super().alerts()
-        if self.state.get('battery', 100) < 10:
-            active_alerts.append(
-                {"icon": "battery_alert",
-                 "label": f"Low battery: {self.state['battery']} %",
-                 "color": "#f44336"})
+        try:
+            if self.state['battery'] < 10:
+                active_alerts.append(
+                    {"icon": "battery_alert",
+                     "label": f"Low battery: {self.state['battery']} %",
+                     "color": "#f44336"})
+        except:
+            pass
         return active_alerts
 
 

@@ -13,6 +13,7 @@ class ZHASensor(ZDevice):
         self.divisor = 100
         self.discrete = True
         await super().__init__(*args, **kwargs)
+        await super().init_state({mainstate: False})
 
     def ui(self):
         """Return ui representation."""
@@ -20,16 +21,16 @@ class ZHASensor(ZDevice):
         lasttime = str(datetime.now() - timedelta(hours=1)).split('.')[0]
         if self.discrete:
             t = tprev = str(datetime.now()).split('.')[0]
-            sprev = self.state[self.mainstate ]
+            sprev = self.state[self.mainstate]
             lstart = (tprev, int(sprev))
             for t, s, in reversed(self.history):
                 t = t.partition('.')[0]
-                if sprev != s['on']:
+                if sprev != s[self.mainstate]:
                     plotdata.append({'x': lstart[0], 'y': lstart[1]})
                     plotdata.append({'x': tprev, 'y': lstart[1]})
-                    lstart = (tprev, int(s[self.mainstate ]))
+                    lstart = (tprev, int(s[self.mainstate]))
                 tprev = t
-                sprev = s[self.mainstate ]
+                sprev = s[self.mainstate]
                 if t < lasttime:
                     t = lasttime
                     break
