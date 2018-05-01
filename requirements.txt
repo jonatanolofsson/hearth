@@ -7,4 +7,3 @@ python-dateutil
 uvloop
 sanic
 git+https://github.com/jonatanolofsson/python-sectoralarm.git
-pychromecast

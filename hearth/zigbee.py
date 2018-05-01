@@ -94,6 +94,10 @@ class ServerConnection:
         asyncio.ensure_future(self.load_devices())
         asyncio.ensure_future(self.ws_reader())
 
+    async def shutdown(self):
+        """Shut down."""
+        await self.session.__aexit__(None, None, None)
+
     async def get(self, endpoint):
         """HTTP GET."""
         async with self.session.get(f"{self.rest_uri}/{endpoint}",

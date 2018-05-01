@@ -54,6 +54,7 @@ class SectorAlarm(hearth.Device):
         except Exception as e:
             LOGGER.warning("SectorAlarm exception: %s", e)
             await self.update_state({"reachable": False}, False)
+            await self.connect()
 
     async def syncer(self):
         """Stay in sync."""
