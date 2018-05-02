@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import hearth
-from hearth import Device
+from hearth import Device, D, tz
 
 __all__ = ['Room']
 
@@ -33,6 +33,16 @@ class Room(Device):
         LOGGER.debug("Starting up %s", self.id)
         asyncio.gather(*[d.on() for d in self.devices.values()
                          if hasattr(d, 'on')])
+
+    def any(self, state='on', value=True, devices=None):
+        """Return true if anything in the room is on."""
+        devices = devices or self.devices.keys()
+        for devname in devices:
+            dev = D(devname)
+            if state in dev.state and dev.state[state] == value:
+                return True
+        return False
+
 
     async def toggle(self):
         """Toggle room, following biglight."""
