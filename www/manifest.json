@@ -1,0 +1,11 @@
+{
+    "short_name": "Hearth",
+    "name": "Minimal home automation",
+    "display": "standalone",
+    "gcm_sender_id": "103953800507",
+    "icons": [{
+        "src": "/icon-128.png",
+        "type": "image/png",
+        "sizes": "128x128"
+      }]
+}

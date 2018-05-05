@@ -154,7 +154,7 @@ class Device:
         if not self.state['reachable']:
             active_alerts.append({"icon": "error",
                                   "label": "Device unreachable",
-                                  "color": "#f44336"})
+                                  "color": "error"})
             LOGGER.debug("Unreachable device: %s", self.id)
         return active_alerts
 

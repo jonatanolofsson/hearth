@@ -67,14 +67,14 @@ class Room(Device):
         """UI."""
         return {"rightIcon": "all_out", "rightAction": "off",
                 "ui": [
-                    {"class": "FlatButton",
+                    {"class": "Button",
                      "props": {"label": "Off"},
                      "action": "off"},
-                    {"class": "FlatButton",
+                    {"class": "Button",
                      "props": {"label": "On"},
                      "action": "on"}
                 ] + ([
-                    {"class": "SelectField",
+                    {"class": "Select",
                      "props": {"floatingLabelText": "Scene"},
                      "items": self.scenes,
                      "state": "scene"}

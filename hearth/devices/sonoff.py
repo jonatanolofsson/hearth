@@ -80,7 +80,7 @@ class SonOff(Device):
         return {"rightIcon": "indeterminate_check_box",
                 "rightAction": "toggle",
                 "ui": [
-                    {"class": "Toggle",
+                    {"class": "Switch",
                      "props": {"label": "On"},
                      "state": "on"},
                     {"class": "C3Chart",
