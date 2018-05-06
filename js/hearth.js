@@ -71,8 +71,18 @@ class DeviceHandler {
         this.id = dev.id;
         this.hearth = hearth;
         this.props = dev
-        this._statecb = null;
+        this.component = null;
         this.state = dev.state;
+        this.open = false;
+    }
+
+    openDialog() {
+        this.open = true;
+        this.hearth.forceUpdate();
+    }
+    closeDialog() {
+        this.open = false;
+        this.hearth.forceUpdate();
     }
 
     action(action) {
@@ -82,23 +92,19 @@ class DeviceHandler {
     }
 
     setState(state) {
-        if (this._statecb) {
-            this._statecb(state);
-        }
-        this.hearth.forceUpdate();
         Object.assign(this.state, state);
+        if (this.component) {
+            this.component.setState(state);
+            this.hearth.forceUpdate();
+        }
     }
 
-    setCallback(cb) {
-        this._statecb = cb;
-        if (this.state && cb) {
-            cb(this.state);
-        }
+    setComponent(component) {
+        this.component = component;
     }
 
     send(payload) {
         payload.id = this.id;
-        console.log("Sending: ", payload);
         this.hearth.send(payload);
     }
 
@@ -125,20 +131,18 @@ class DeviceHandler {
 }
 
 class DeviceDialog extends Component {
-    constructor(props) {
-        super(props);
-        this.id = props.id;
-        this.handler = DEVICES[props.id];
-        this.state = this.handler.props.state;
-        this.state.__open = false;
+    componentWillMount() {
+        this.handler = DEVICES[this.props.id];
+        this.setState(this.handler.state);
     }
 
-    componentWillMount() {
-        this.handler.setCallback(state => this.setState(state));
+    componentDidMount() {
+        this.handler.setComponent(this);
+        //this.setState(this.handler.state);
     }
 
     componentWillUnmount() {
-        this.handler.setCallback(null);
+        this.handler.setComponent(null);
     }
 
     UIComponent(c, state, key, action) {
@@ -162,7 +166,6 @@ class DeviceDialog extends Component {
             case "Slider":
                 const tthandle = (props) => {
                   const { value, dragging, index, ...restProps } = props;
-                  console.log(dragging);
                   return (
                     <Tooltip
                       title={value}
@@ -222,8 +225,7 @@ class DeviceDialog extends Component {
     }
 
 
-    handleOpen = () => { this.setState({__open: true}); }
-    handleClose = () => { this.setState({__open: false}); }
+    handleClose = () => { this.handler.closeDialog(); }
 
     render() {
         var dom = [];
@@ -241,8 +243,8 @@ class DeviceDialog extends Component {
 
         return (
             <Dialog
-                key={'dialog-' + this.props.id}
-                open={this.state.__open}
+                key={'dialog-' + this.id}
+                open
                 onClose={this.handleClose.bind(this)}
             >
                 <DialogTitle>{this.props.id}</DialogTitle>
@@ -268,25 +270,29 @@ class DeviceDialog extends Component {
 class DeviceList extends Component {
     render() {
         const rows = [];
-        const dialogs = [];
+        var dialog = "";
 
         for (var key in this.props.devices) {
             const device = this.props.devices[key];
             const id = String(device.id);
 
             rows.push(
-                <ListItem button key={id} onClick={device.setState.bind(device, {__open: true})} >
+                <ListItem button key={id} onClick={device.openDialog.bind(device)} >
                     {device.alerts("al" + id)}
                     <ListItemText primary={id} />
                 </ListItem> );
-            dialogs.push(<DeviceDialog {...device.props} />);
+            if (device.open) {
+                dialog = <DeviceDialog {...device.props} />;
+            }
         }
 
         return (
-            <List>
-                {rows}
-                {dialogs}
-            </List>
+            <div>
+                <List>
+                    {rows}
+                </List>
+                {dialog}
+            </div>
         );
     }
 }
