@@ -28,9 +28,9 @@ module.exports = {
 
   plugins: [
     new ExtractPlugin('hearth.css'),
-    //new MinifyPlugin(),
-    //new webpack.DefinePlugin({
-      //'process.env.NODE_ENV': JSON.stringify('production')
-    //})
+    new MinifyPlugin(),
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('production')
+    })
   ]
 };
