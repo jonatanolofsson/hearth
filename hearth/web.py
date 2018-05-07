@@ -60,5 +60,5 @@ def serve(host="0.0.0.0", port=8080):
     """Start webserver."""
     asyncio.ensure_future(WEBAPP.create_server(host=host, port=port))
     for key in logging.Logger.manager.loggerDict:
-        if key.startswith("websockets"):
+        if key.startswith("websockets") or key.startswith("sanic"):
             logging.getLogger(key).setLevel(logging.WARNING)
