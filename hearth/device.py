@@ -179,8 +179,8 @@ class Device:
         if not events:
             return []
         return [
-            {"class": "SelectField",
-             "props": {"floatingLabelText": "Event"},
+            {"class": "Select",
+             "props": {"label": "Event"},
              "action": "event",
              "items": events}]
 

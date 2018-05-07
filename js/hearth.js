@@ -157,12 +157,16 @@ class DeviceDialog extends Component {
                 if (c.state) {
                     c.props.checked = state[c.state];
                 }
-                return <FormControlLabel
-                    control={<Switch
-                    key={key}
-                    onChange={(e,v) => action(v)}
-                    {...c.props} />}
-                    label={c.props.label} />;
+                return (
+                    <FormControl>
+                        <FormControlLabel
+                            control={<Switch
+                                key={key}
+                                onChange={(e,v) => action(v)}
+                                {...c.props} />}
+                            label={c.props.label} />
+                    </FormControl>
+                );
             case "Slider":
                 const tthandle = (props) => {
                   const { value, dragging, index, ...restProps } = props;
@@ -213,13 +217,16 @@ class DeviceDialog extends Component {
                 if (c.state) {
                     c.props.value=state[c.state];
                 }
+                if (!("value" in c.props)) {
+                    c.props.value = "";
+                }
                 return (
-                    <FormGroup>
+                    <FormControl>
                         <InputLabel>{c.props.label}</InputLabel>
                         <Select key={key} onChange={(e, i, v) => action(v)} {...c.props}>
                             {c.items.map(value => (<MenuItem value={value}>{value}</MenuItem>))}
                         </Select>
-                    </FormGroup>
+                    </FormControl>
                     );
         }
     }
@@ -236,9 +243,9 @@ class DeviceDialog extends Component {
             arg0 = Array.isArray(arg0) ? arg0 : [arg0];
             dom.push(this.UIComponent(c,
                                  this.state,
-                                 "uic-" + this.id + "-" + ci,
+                                 "uic-" + this.props.id + "-" + ci,
                                  this.handler.action.bind(this.handler, c.action, ...arg0)));
-            //dom.push(<br />);
+            dom.push(<br />);
         }
 
         return (
@@ -249,11 +256,7 @@ class DeviceDialog extends Component {
             >
                 <DialogTitle>{this.props.id}</DialogTitle>
                 <DialogContent>
-                    <FormControl fullWidth>
-                        <FormGroup>
-                            {dom}
-                        </FormGroup>
-                    </FormControl>
+                    {dom}
                     <DialogContentText>
                         {this.handler.alerts("ad" + this.props.id)}
                         (Last seen: {this.state.last_seen})

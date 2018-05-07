@@ -28,6 +28,9 @@ module.exports = {
 
   plugins: [
     new ExtractPlugin('hearth.css'),
+    new webpack.SourceMapDevToolPlugin({
+      exclude: ['popper.js']
+    }),
     new MinifyPlugin(),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('production')
