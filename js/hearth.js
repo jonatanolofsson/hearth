@@ -223,7 +223,7 @@ class DeviceDialog extends Component {
                 return (
                     <FormControl>
                         <InputLabel>{c.props.label}</InputLabel>
-                        <Select key={key} onChange={(e, i, v) => action(v)} {...c.props}>
+                        <Select key={key} onChange={e => action(e.target.value)} {...c.props}>
                             {c.items.map(value => (<MenuItem value={value}>{value}</MenuItem>))}
                         </Select>
                     </FormControl>
