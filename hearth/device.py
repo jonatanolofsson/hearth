@@ -138,6 +138,7 @@ class Device:
                 await asyncio.wait_for(fut, timeout)
             except asyncio.TimeoutError:
                 LOGGER.debug("Did not update: %s", self.id)
+                self._update_fut = None
                 await self.update_state({"reachable": False}, False)
             finally:
                 if self._update_fut is not None:
