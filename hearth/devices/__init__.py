@@ -6,3 +6,4 @@ from .zha import *
 from .zwave import *
 from .chromecast import *
 from .postbox import *
+from .mqttblinds import *
