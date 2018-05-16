@@ -35,11 +35,15 @@ class Device:
         """Load history from file."""
         self.history = []
         hfile = self.history_filename()
-        if os.path.exists(hfile):
-            with open(hfile, 'r') as ifile:
-                self.history = json.load(ifile)
-        if len(self.history) > 0:
-            self.state = self.history[-1][1]
+        try:
+            if os.path.exists(hfile):
+                with open(hfile, 'r') as ifile:
+                    self.history = json.load(ifile)
+            if self.history and isinstance(self.history, list):
+                self.state = self.history[-1][1]
+        except Exception as e:  # pylint: disable=broad-except, invalid-name
+            LOGGER.warning("Could not load history: %s", self.id)
+            LOGGER.error(e)
 
     async def save_history(self):
         """Save history to file."""
@@ -163,8 +167,8 @@ class Device:
         """React."""
         state = self.state.copy()
         ui_ = self.ui()
-        if ui_ and 'state' in ui_:
-            state.update(ui_['state'])
+        if ui_ and 'state' in ui_:  # pylint: disable=unsupported-membership-test
+            state.update(ui_['state'])  # pylint: disable=unsubscriptable-object
         state.update({'alerts': self.alerts()})
         return {'id': self.id, 'state': state, 'ui': ui_}
 
