@@ -28,6 +28,7 @@ class Device(DeviceBase):
         while not device:
             device = self.server.get_device(self.uniqueid)
             if not device:
+                LOGGER.error("Didn't get device %s : %s", self.id, self.uniqueid)
                 await asyncio.sleep(sleeptime)
                 if sleeptime < 30:
                     sleeptime += 1
@@ -42,6 +43,7 @@ class Device(DeviceBase):
 
     async def ws_callback(self, message):
         """Message received from websocket."""
+        LOGGER.error("Got new message to %s", self.id)
         if 'state' in message:
             reachable = message['state']['reachable'] \
                 if 'reachable' in message['state'] else False
@@ -140,8 +142,8 @@ class ServerConnection:
                 await asyncio.sleep(1)
             except asyncio.CancelledError:
                 break
-            except:
-                pass
+            except Exception as e:
+                LOGGER.error("Caught zigbee exception in %s: %s", self.id, e)
 
     def add_listener(self, uniqueid, callback):
         """Add callback on message from device."""
