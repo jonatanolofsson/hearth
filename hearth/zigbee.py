@@ -1,4 +1,4 @@
-"""ZigBee server."""
+"""Zigbee server."""
 import asyncio
 import json
 import logging
@@ -6,9 +6,40 @@ import websockets
 import aiohttp
 from asyncinit import asyncinit
 from .device import Device as DeviceBase
+from . import hearth
 
 LOGGER = logging.getLogger(__name__)
 SERVER = None
+
+
+class ZigbeeController(DeviceBase):
+    """Control the Zigbee backend."""
+    async def __init__(self, *args, **kwargs):
+        """Init."""
+        await super().__init__(*args, **kwargs)
+        await self.update_state({})
+
+    async def open_network(self, duration=3600):
+        """open network."""
+        if SERVER:
+            await SERVER.open_network(duration)
+
+    async def close_network(self):
+        """open network."""
+        if SERVER:
+            await SERVER.close_network()
+
+    def ui(self):
+        """UI."""
+        return {"ui": [
+                    {"class": "Button",
+                     "props": {"label": "Open network"},
+                     "action": "open_network"},
+                    {"class": "Button",
+                     "props": {"label": "Close network"},
+                     "action": "close_network"}
+                ]
+                + self.events_ui()}
 
 
 class Device(DeviceBase):
@@ -180,6 +211,15 @@ class ServerConnection:
             return False
         return self.devices[uniqueid]
 
+    async def open_network(self, duration=3600):
+        """Open network for device joins."""
+        await self.put('config', {"networkopenduration": int(duration), "permitjoin": 255})
+
+    async def close_network(self):
+        """Open network for device joins."""
+        await self.put('config', {"permitjoin": 0})
+
+
 
 async def server():
     """Get server object."""
@@ -189,9 +229,10 @@ async def server():
 
 
 def connect(*args, **kwargs):
-    """Start ZigBee server."""
+    """Start Zigbee server."""
     async def astart(*args, **kwargs):
         """Async start server."""
         global SERVER  # pylint: disable=global-statement
         SERVER = await ServerConnection(*args, **kwargs)
+        hearth.add_devices(await ZigbeeController("Zigbee"))
     asyncio.ensure_future(astart(*args, **kwargs))
