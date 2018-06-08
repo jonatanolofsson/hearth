@@ -74,7 +74,7 @@ class Device(DeviceBase):
 
     async def ws_callback(self, message):
         """Message received from websocket."""
-        LOGGER.error("Got new message to %s", self.id)
+        LOGGER.info("Got new message to %s", self.id)
         if 'state' in message:
             reachable = message['state']['reachable'] \
                 if 'reachable' in message['state'] else False
