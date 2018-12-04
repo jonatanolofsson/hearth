@@ -213,7 +213,7 @@ class ServerConnection:
 
     async def open_network(self, duration=3600):
         """Open network for device joins."""
-        await self.put('config', {"networkopenduration": int(duration), "permitjoin": 255})
+        await self.put('config', {"permitjoin": int(duration)})
 
     async def close_network(self):
         """Open network for device joins."""
