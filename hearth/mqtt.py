@@ -52,7 +52,7 @@ class ServerConnection:
 
     async def pub(self, topic, payload, qos=0):
         """Publish message on topic."""
-        if isinstance(payload, dict):
+        if isinstance(payload, dict) or isinstance(payload, list):
             payload = json.dumps(payload)
         asyncio.ensure_future(self.mqtt.publish(topic, payload.encode(), qos))
 

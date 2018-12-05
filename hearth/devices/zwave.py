@@ -24,7 +24,7 @@ class ZWDevice(Device):
         try:
             await self.update_state(json.loads(payload))
         except:
-            LOGGER.debug("Failed to parse MQTT message: %s", msg)
+            LOGGER.debug("Failed to parse MQTT message: %s", payload)
 
     async def set_state(self, upd_state):
         """Update state."""
@@ -34,6 +34,10 @@ class ZWDevice(Device):
             await self.mqtt.pub(f"zwave/set/{self.zwid}", zwstates)
         await super().set_state(upd_state)
 
+    async def refresh(self, states=None):
+        await self.mqtt.pub(f"zwave/refresh/{self.zwid}",
+                            states or self.zwstates)
+
 
 class ZWThermostat(ZWDevice):
     """ZWave thermostat."""
@@ -41,6 +45,7 @@ class ZWThermostat(ZWDevice):
         await super().__init__(id_, zwid)
         await super().init_state({'Heating 1': 21.0, "Battery Level": 100})
         self.zwstates += ["Heating 1"]
+        await self.refresh()
 
     async def set_temperature(self, setpoint):
         """Set new temperature setpoint."""
