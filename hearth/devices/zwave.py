@@ -13,6 +13,7 @@ class ZWDevice(Device):
     """SonOff switch."""
 
     async def __init__(self, id_, zwid):
+        LOGGER.debug("Init zwave.")
         await super().__init__(id_)
         self.zwid = zwid
         self.mqtt = await mqtt.server()

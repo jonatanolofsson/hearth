@@ -22,44 +22,44 @@ logging.basicConfig(level=logging.WARNING,
 LOGGER = logging.getLogger(__name__)
 
 
-def call_at2(loop, when, callback, *args):
+def call_at2(loop, when, callback, *args, **kwargs):
     """Call callback or coroutine later."""
     def _callback(*args2, **kwargs2):
         res = callback(*args2, **kwargs2)
         if inspect.isawaitable(res):
             asyncio.ensure_future(res)
 
-    return loop.call_at_(when, _callback, *args)
+    return loop.call_at_(when, _callback, *args, **kwargs)
 
 
-def call_at(*args):
+def call_at(*args, **kwargs):
     """Call callback or coroutine later."""
-    return call_at2(asyncio.get_event_loop(), *args)
+    return call_at2(asyncio.get_event_loop(), *args, **kwargs)
 
 
-def _call_at_mp(self, *args):
+def _call_at_mp(self, *args, **kwargs):
     """asyncio call_later monkey patch that works with coroutines."""
-    return call_at2(self, *args)
+    return call_at2(self, *args, **kwargs)
 
 
-def call_later2(loop, timeout, callback, *args):
+def call_later2(loop, timeout, callback, *args, **kwargs):
     """Call callback or coroutine later."""
     def _callback(*args2, **kwargs2):
         res = callback(*args2, **kwargs2)
         if inspect.isawaitable(res):
             asyncio.ensure_future(res)
 
-    return loop.call_later_(timeout, _callback, *args)
+    return loop.call_later_(timeout, _callback, *args, **kwargs)
 
 
-def call_later(*args):
+def call_later(*args, **kwargs):
     """Call callback or coroutine later."""
-    return call_later2(asyncio.get_event_loop(), *args)
+    return call_later2(asyncio.get_event_loop(), *args, **kwargs)
 
 
-def _call_later_mp(self, *args):
+def _call_later_mp(self, *args, **kwargs):
     """asyncio call_later monkey patch that works with coroutines."""
-    return call_later2(self, *args)
+    return call_later2(self, *args, **kwargs)
 
 
 asyncio.get_event_loop().__class__.call_later_ = asyncio.get_event_loop().__class__.call_later

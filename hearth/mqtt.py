@@ -70,6 +70,7 @@ class ServerConnection:
 async def server():
     """Get server object."""
     while SERVER is None:
+        LOGGER.info("Waiting for MQTT server.")
         await asyncio.sleep(0.2)
     return SERVER
 
