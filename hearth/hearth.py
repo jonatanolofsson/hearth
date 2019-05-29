@@ -159,3 +159,6 @@ def main():
         asyncio.get_event_loop().run_until_complete(
             asyncio.gather(*[d.shutdown() for d in DEVICES.values()]))
         asyncio.get_event_loop().close()
+
+if __name__ == '__main__':
+    main()

@@ -116,19 +116,21 @@ class Device(DeviceBase):
 class ServerConnection:
     """Deconz server."""
 
-    async def __init__(self, url, api_key, rest_port=80):
+    async def __init__(self, api_key, url="localhost", rest_port=80):
         self.url = url
         self.api_key = api_key
         self.rest_uri = f"http://{url}:{rest_port}/api/{api_key}"
         self.devices = {}
         self._listeners = {}
         self.session = await aiohttp.ClientSession().__aenter__()
+        print("Init")
         await self.load_config()
         asyncio.ensure_future(self.load_devices())
         asyncio.ensure_future(self.ws_reader())
 
     async def shutdown(self):
         """Shut down."""
+        print("Shutdown")
         await self.session.__aexit__(None, None, None)
 
     async def get(self, endpoint):
@@ -174,7 +176,8 @@ class ServerConnection:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                LOGGER.error("Caught zigbee exception in %s: %s", self.id, e)
+                LOGGER.error("Caught zigbee exception in %s: %s", ws_uri, e)
+                await asyncio.sleep(1)
 
     def add_listener(self, uniqueid, callback):
         """Add callback on message from device."""

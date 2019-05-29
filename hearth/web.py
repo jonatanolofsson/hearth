@@ -56,9 +56,9 @@ def broadcast(payload):
     asyncio.ensure_future(asyncio.gather(*[s.send(payload) for s in SOCKETS]))
 
 
-def serve(host="0.0.0.0", port=8080):
+def serve(host="0.0.0.0", port=80):
     """Start webserver."""
-    asyncio.ensure_future(WEBAPP.create_server(host=host, port=port))
+    asyncio.ensure_future(WEBAPP.create_server(host=host, port=port, return_asyncio_server=True))
     for key in logging.Logger.manager.loggerDict:
         if key.startswith("websockets") or key.startswith("sanic"):
             logging.getLogger(key).setLevel(logging.WARNING)
