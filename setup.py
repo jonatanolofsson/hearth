@@ -7,13 +7,13 @@ from setuptools.command.install import install
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class CustomInstallCommand(install):
-    """Custom install command."""
+# class CustomInstallCommand(install):
+    # """Custom install command."""
 
-    def run(self):
-        """Run."""
-        install.run(self)
-        shutil.copyfile(THIS_DIR + '/hearth.service', '/lib/systemd/system')
+    # def run(self):
+        # """Run."""
+        # install.run(self)
+        # shutil.copyfile(THIS_DIR + '/hearth.service', '/lib/systemd/system')
 
 
 setup(
@@ -31,5 +31,5 @@ setup(
     tests_require=[
         'pytest',
     ],
-    cmdclass={'install': CustomInstallCommand}
+    # cmdclass={'install': CustomInstallCommand}
 )

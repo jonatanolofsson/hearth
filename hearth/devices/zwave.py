@@ -46,6 +46,7 @@ class ZWThermostat(ZWDevice):
         await super().__init__(id_, zwid)
         await super().init_state({'Heating 1': 21.0, "Battery Level": 100})
         self.zwstates += ["Heating 1"]
+        # FIXME: Set "Day", "Hour", "Minute"
         await self.refresh()
 
     async def set_temperature(self, setpoint):
@@ -68,4 +69,84 @@ class ZWThermostat(ZWDevice):
                     {"class": "Text",
                      "props": {"label": "Battery", "format": "{} %"},
                      "state": "Battery Level"},
+                ]}
+
+
+class ZWSwitch(ZWDevice):
+    """ZWave thermostat."""
+    async def __init__(self, id_, zwid):
+        await super().__init__(id_, zwid)
+        await super().init_state({'Switch': False, "Energy": 0, "Power": 0})
+        self.zwstates += ["Switch"]
+        await self.refresh()
+
+    async def on(self):  # pylint: disable=invalid-name
+        """Switch on."""
+        await self.set_state({'Switch': True})
+
+    async def off(self):
+        """Switch off."""
+        await self.set_state({'Switch': False})
+
+    async def toggle(self):
+        """Toggle."""
+        await (self.off() if self.state['Switch'] else self.on())
+
+    def ui(self):
+        """Return ui representation."""
+        return {"rightIcon": "indeterminate_check_box",
+                "rightAction": "toggle",
+                "ui": [
+                    {"class": "Switch",
+                     "props": {"label": "On"},
+                     "state": "Switch"},
+                ]}
+
+
+class ZWDimmer(ZWDevice):
+    """ZWave thermostat."""
+    async def __init__(self, id_, zwid):
+        await super().__init__(id_, zwid)
+        await super().init_state({'Switch': False, "Energy": 0, "Power": 0})
+        self.zwstates += ["Switch", "Level"]
+        await self.refresh()
+
+    async def on(self):  # pylint: disable=invalid-name
+        """Switch on."""
+        await self.set_state({'Switch': True})
+
+    async def off(self):
+        """Switch off."""
+        await self.set_state({'Switch': False})
+
+    async def toggle(self):
+        """Toggle."""
+        await (self.off() if self.state['Switch'] else self.on())
+
+    async def brightness(self, bri, transisiontime=0):
+        """Set brightness."""
+        await self.set_state({'Level': min(max(0, int(bri)), 99), "Dimming Duration": transisiontime})
+
+    async def dim_up(self, percent=10, transisiontime=0):
+        """Dim up."""
+        await self.brightness(self.state['bri'] + percent, transisiontime)
+
+    async def dim_down(self, percent=10, transisiontime=0):
+        """Dim down."""
+        await self.brightness(self.state['bri'] - percent, transisiontime)
+
+    def ui(self):
+        """Return ui representation."""
+        return {"rightIcon": "indeterminate_check_box",
+                "rightAction": "toggle",
+                "ui": [
+                    {"class": "Switch",
+                     "props": {"label": "On"},
+                     "state": "Switch"},
+                    {"class": "Slider",
+                     "props": {"label": "Brightness",
+                               "min": 0,
+                               "max": 99,
+                               "step": 1},
+                     "state": "Level"}
                 ]}

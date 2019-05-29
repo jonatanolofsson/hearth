@@ -106,10 +106,7 @@ def load_config_directory(directory):
 
 def add_devices(*devices):
     """Add devices."""
-    new_devices = {}
-    for device in devices:
-        new_devices[device.id] = device
-    DEVICES.update(new_devices)
+    DEVICES.update({d.id: d for d in devices})
 
 
 async def wait_for(device):

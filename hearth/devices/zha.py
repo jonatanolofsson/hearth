@@ -189,7 +189,7 @@ class ZHALight(ZDevice):
 
     async def brightness(self, bri, transisiontime=0):
         """Set brightness."""
-        await self.set_state({'bri': min(max(0, bri), 255),
+        await self.set_state({'bri': min(max(0, int(bri)), 255),
                               'transisiontime': transisiontime})
 
     async def dim_up(self, percent=10, transisiontime=0):
