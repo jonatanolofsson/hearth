@@ -345,8 +345,8 @@ class Hearth extends Component {
 
     render() {
         const devicenames = Object.keys(this.state.devices);
-        const filterText = this.state.filterText.toLowerCase();
-        const devices = Object.values(this.state.devices).filter(dev => String(dev.id).toLowerCase().indexOf(filterText) !== -1);
+        const filterText = ".*" + this.state.filterText.toLowerCase().split('').join('.*') + ".*";
+        const devices = Object.values(this.state.devices).filter(dev => String(dev.id).toLowerCase().search(filterText) !== -1);
         devices.sort((a,b) => String(a.id).localeCompare(String(b.id)));
         return (
             <MuiThemeProvider theme={theme}>
