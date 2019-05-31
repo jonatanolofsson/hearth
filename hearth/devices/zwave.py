@@ -3,7 +3,7 @@ import json
 import logging
 from hearth import Device, mqtt
 
-__all__ = ['ZWThermostat']
+__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer']
 WAIT_TIME = 10
 
 LOGGER = logging.getLogger(__name__)
@@ -13,7 +13,6 @@ class ZWDevice(Device):
     """SonOff switch."""
 
     async def __init__(self, id_, zwid):
-        LOGGER.debug("Init zwave.")
         await super().__init__(id_)
         self.zwid = zwid
         self.mqtt = await mqtt.server()
@@ -22,10 +21,11 @@ class ZWDevice(Device):
 
     async def updatehandler(self, _, payload):
         """Handle updatemessage from MQTT."""
+        LOGGER.info("Getting zwave update: %s :: %s", self.zwid, payload)
         try:
             await self.update_state(json.loads(payload))
         except:
-            LOGGER.debug("Failed to parse MQTT message: %s", payload)
+            LOGGER.warning("Failed to parse MQTT message: %s", payload)
 
     async def set_state(self, upd_state):
         """Update state."""
@@ -33,6 +33,7 @@ class ZWDevice(Device):
                     if key in self.zwstates}
         if zwstates:
             await self.mqtt.pub(f"zwave/set/{self.zwid}", zwstates)
+            LOGGER.warning("Publish zwstates on %s: %s", f"zwave/set/{self.zwid}", zwstates)
         await super().set_state(upd_state)
 
     async def refresh(self, states=None):
@@ -73,7 +74,7 @@ class ZWThermostat(ZWDevice):
 
 
 class ZWSwitch(ZWDevice):
-    """ZWave thermostat."""
+    """ZWave Switch."""
     async def __init__(self, id_, zwid):
         await super().__init__(id_, zwid)
         await super().init_state({'Switch': False, "Energy": 0, "Power": 0})
@@ -104,20 +105,44 @@ class ZWSwitch(ZWDevice):
 
 
 class ZWDimmer(ZWDevice):
-    """ZWave thermostat."""
+    """ZWave dimmer."""
     async def __init__(self, id_, zwid):
         await super().__init__(id_, zwid)
-        await super().init_state({'Switch': False, "Energy": 0, "Power": 0})
-        self.zwstates += ["Switch", "Level"]
+        await super().init_state({"Switch": False, "Level": 0, "Energy": 0, "Power": 0, "ResumeLevel": 99})
+        self.zwstates += ["Level", "Energy", "Power"]
         await self.refresh()
+
+    async def set_state(self, upd_state):
+        """Update state."""
+        if "Switch" in upd_state:
+            if upd_state["Switch"]:
+                await self.on()
+            else:
+                await self.off()
+            del upd_state["Switch"]
+
+        await super().set_state(upd_state)
+        self.state["Switch"] = (self.state["Level"] > 0.01)
+        if self.state["Level"] > 0:
+            self.state["ResumeLevel"] = self.state["Level"]
+
+    async def update_state(self, upd_state, set_seen=True):
+        if "Level" in upd_state:
+            upd_state["Switch"] = (upd_state["Level"] > 0.01)
+            if upd_state["Level"] > 0.01:
+                upd_state["ResumeLevel"] = upd_state["Level"]
+        await super().update_state(upd_state, set_seen)
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
-        await self.set_state({'Switch': True})
+        level = self.state.get("ResumeLevel", 99)
+        if level < 0.01:
+            level = 99
+        await self.set_state({'Level': level})
 
     async def off(self):
         """Switch off."""
-        await self.set_state({'Switch': False})
+        await self.set_state({'Level': 0})
 
     async def toggle(self):
         """Toggle."""
@@ -125,7 +150,7 @@ class ZWDimmer(ZWDevice):
 
     async def brightness(self, bri, transisiontime=0):
         """Set brightness."""
-        await self.set_state({'Level': min(max(0, int(bri)), 99), "Dimming Duration": transisiontime})
+        await self.set_state({'Level': min(max(0, int(bri)), 99)})
 
     async def dim_up(self, percent=10, transisiontime=0):
         """Dim up."""
@@ -148,5 +173,8 @@ class ZWDimmer(ZWDevice):
                                "min": 0,
                                "max": 99,
                                "step": 1},
-                     "state": "Level"}
+                     "state": "Level"},
+                    {"class": "Text",
+                        "props": {"label": "Power", "format": "{:1} W"},
+                     "state": "Power"},
                 ]}

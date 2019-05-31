@@ -15,15 +15,15 @@ class Group(Device):
 
     async def __init__(self, id_, *devices):
         await super().__init__(id_)
-        devices[0].refresh_ = devices[0].refresh
-        devices[0].refresh = self.refresh
+        devices[0].refresh_ui_ = devices[0].refresh_ui
+        devices[0].refresh_ui_ = self.refresh_ui
         self.devices = devices
         hearth.add_devices(*devices)
 
-    def refresh(self):
+    def refresh_ui(self):
         """Refresh overload."""
-        self.devices[0].refresh_()
-        super().refresh()
+        self.devices[0].refresh_ui_()
+        super().refresh_ui()
 
     async def broadcast(self, fnname, *args, **kwargs):
         """Broadcast function to all members of group."""

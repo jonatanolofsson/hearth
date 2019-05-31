@@ -194,7 +194,7 @@ class DeviceDialog extends Component {
             case "Text":
                 if (c.state) {
                     if (c.props.format) {
-                        c.props.value = c.props.format.replace(/{}/g, state[c.state]);
+                        c.props.value = c.props.format.replace(/{(?::(\d+))?}/g, function(match, p1) { return (p1 ? state[c.state].toFixed(parseInt(p1, 10)) : state[c.state]); });
                     } else {
                         c.props.value = state[c.state];
                     }

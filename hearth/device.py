@@ -123,7 +123,7 @@ class Device:
         old_state = deepcopy(self.state)
         self.state.update(upd_state)
         self.history.append([str(datetime.now()), deepcopy(self.state)])
-        self.refresh()
+        self.refresh_ui()
         self.event('statechange', self)
         for key in actually_updated:
             self.event(f'statechange:{key}', self, key, self.state[key], old_state.get(key, None))
@@ -201,7 +201,7 @@ class Device:
                 if inspect.isawaitable(res):
                     await res
 
-    def refresh(self):
+    def refresh_ui(self):
         """Announce state changes."""
         web.broadcast(self.webmessage(self.serialize()))
 
