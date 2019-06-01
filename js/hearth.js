@@ -36,6 +36,7 @@ import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import C3Chart from 'react-c3js';
 import 'c3/c3.css';
+import { go as fuzzysort } from 'fuzzysort';
 
 const theme = createMuiTheme();
 
@@ -344,10 +345,9 @@ class Hearth extends Component {
     }
 
     render() {
-        const devicenames = Object.keys(this.state.devices);
-        const filterText = ".*" + this.state.filterText.toLowerCase().split('').join('.*') + ".*";
-        const devices = Object.values(this.state.devices).filter(dev => String(dev.id).toLowerCase().search(filterText) !== -1);
-        devices.sort((a,b) => String(a.id).localeCompare(String(b.id)));
+        const devices = this.state.filterText
+            ? fuzzysort(this.state.filterText, Object.values(this.state.devices), {key: 'id'}).map(x => x.obj)
+            : Object.values(this.state.devices).sort((a,b) => String(a.id).localeCompare(String(b.id)));
         return (
             <MuiThemeProvider theme={theme}>
                 <div>
