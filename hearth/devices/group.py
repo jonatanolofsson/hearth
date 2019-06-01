@@ -16,7 +16,7 @@ class Group(Device):
     async def __init__(self, id_, *devices):
         await super().__init__(id_)
         devices[0].refresh_ui_ = devices[0].refresh_ui
-        devices[0].refresh_ui_ = self.refresh_ui
+        devices[0].refresh_ui = self.refresh_ui
         self.devices = devices
         hearth.add_devices(*devices)
 
