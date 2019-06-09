@@ -33,7 +33,7 @@ class ZWDevice(Device):
                     if key in self.zwstates}
         if zwstates:
             await self.mqtt.pub(f"zwave/set/{self.zwid}", zwstates)
-            LOGGER.warning("Publish zwstates on %s: %s", f"zwave/set/{self.zwid}", zwstates)
+            LOGGER.info("Publish zwstates on %s: %s", f"zwave/set/{self.zwid}", zwstates)
         await super().set_state(upd_state)
 
     async def refresh(self, states=None):
