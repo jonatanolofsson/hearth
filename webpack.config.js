@@ -1,13 +1,26 @@
-var ExtractPlugin = require('extract-text-webpack-plugin');
-const MinifyPlugin = require("babel-minify-webpack-plugin");
+const TerserJSPlugin = require('terser-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
+  mode: "production",
   entry: __dirname + '/js/hearth.js',
   output: {
     path: __dirname + '/www',
     filename: 'hearth.js'
   },
+
+  optimization: {
+    minimizer: [new TerserJSPlugin({}), new OptimizeCSSAssetsPlugin({})],
+  },
+
+  plugins: [
+    new MiniCssExtractPlugin({ filename: 'hearth.css', }),
+    new webpack.SourceMapDevToolPlugin({ exclude: ['popper.js'] }),
+    new webpack.DefinePlugin({ 'process.env.NODE_ENV': JSON.stringify('production') })
+  ],
+
   module: {
     rules: [
       {
@@ -19,22 +32,8 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ExtractPlugin.extract({
-          use: "css-loader"
-        })
-      }
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
     ],
   },
-
-  plugins: [
-    new ExtractPlugin('hearth.css'),
-    new webpack.SourceMapDevToolPlugin({
-      exclude: ['popper.js']
-    }),
-    new MinifyPlugin(),
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify('production')
-      //'process.env.NODE_ENV': JSON.stringify('development')
-    })
-  ]
 };
