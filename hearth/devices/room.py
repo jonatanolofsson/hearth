@@ -19,7 +19,7 @@ class Room(Device):
         self.devices = {device.id: device for device in devices}
         hearth.add_devices(*devices)
         self.scenes = scenes or ['default']
-        await self.init_state({"scene": self.scenes[0]})
+        await self.init_state({"scene": self.scenes[0], "automation": True})
         await self.update_state({})
 
     async def off(self):
@@ -42,7 +42,6 @@ class Room(Device):
             if state in dev.state and dev.state[state] == value:
                 return True
         return False
-
 
     async def toggle(self):
         """Toggle room, following biglight."""
@@ -72,7 +71,10 @@ class Room(Device):
                      "action": "off"},
                     {"class": "Button",
                      "props": {"label": "On"},
-                     "action": "on"}
+                     "action": "on"},
+                    {"class": "Switch",
+                     "props": {"label": "Automation"},
+                     "state": "automation"}
                 ] + ([
                     {"class": "Select",
                      "props": {"floatingLabelText": "Scene"},
