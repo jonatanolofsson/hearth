@@ -19,8 +19,17 @@ class Room(Device):
         self.devices = {device.id: device for device in devices}
         hearth.add_devices(*devices)
         self.scenes = scenes or ['default']
+        self.turn_off = None
         await self.init_state({"scene": self.scenes[0], "automation": True})
         await self.update_state({})
+
+    async def update_state(self, upd_state, set_seen=True):
+        """Update state."""
+        await super().update_state(upd_state, set_seen)
+        if 'automation' in upd_state:
+            if not self.state['automation']:
+                if self.turn_off:
+                    self.turn_off.cancel()
 
     async def off(self):
         """Shut everything down."""
@@ -33,6 +42,12 @@ class Room(Device):
         LOGGER.debug("Starting up %s", self.id)
         asyncio.gather(*[d.on() for d in self.devices.values()
                          if hasattr(d, 'on')])
+
+    async def no_motion(self):
+        """No motion for a while."""
+        if not self.state["automation"]:
+            return
+        await self.off()
 
     def any(self, state='on', value=True, devices=None):
         """Return true if anything in the room is on."""
