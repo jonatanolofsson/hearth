@@ -24,6 +24,23 @@ async def index(_):
     return await response.file(WEBROOT + '/index.html')
 
 
+@WEBAPP.route('/a/<device:string>/<method:string>')
+async def action(request, device='', method=''):
+    """Main page."""
+    data = {
+        "id": device if device is not "0" else 0,
+        "m": method,
+        "args": request.args.getlist("args", [])
+    }
+    device = D(data['id'])
+    if not device:
+        LOGGER.warning("No such recipient: '%s'", data['id'])
+        return response.json({"error": "No such recipient", "data": data}, status=404)
+
+    await device.webhandler(data, None)
+    return response.json(data)
+
+
 @WEBAPP.websocket('/ws')
 async def wsocket(_, socket):
     """Websocket route."""

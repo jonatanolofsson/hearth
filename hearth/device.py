@@ -77,7 +77,6 @@ class Device:
     def event(self, eventname, *args, **kwargs):
         """Announce event."""
         for callback in self._eventlisteners.get(eventname, []):
-            LOGGER.debug("Event: %s. Scheduling callback: %s", eventname, callback)
             nargs = len(inspect.signature(callback).parameters) - len(kwargs)
             res = callback(*args[:nargs], **kwargs)
             if inspect.isawaitable(res):
