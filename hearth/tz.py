@@ -10,9 +10,9 @@ class TZ:
     def __init__(self):
         self.location = None
 
-    def set_locale(self, name, region, lat, lon, tzname, elevation):
+    def set_locale(self, name, region, tzname, lat, lon):
         """Set locale."""
-        self.location = astral.Location((name, region, lat, lon, tzname, elevation))
+        self.location = astral.LocationInfo((name, region, tzname, lat, lon))
 
     def daylight(self, when=None, delta=None):
         """Return true if time is within daylight hours
@@ -42,7 +42,7 @@ class TZ:
 
     def __getattr__(self, attr):
         """Getattr"""
-        return getattr(self.location, attr)
+        return getattr(self.location, attr)()
 
 
 sys.modules[__name__] = TZ()
