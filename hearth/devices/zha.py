@@ -1,8 +1,10 @@
+import logging
 from datetime import datetime, timedelta
 from hearth.device import Device as DeviceBase
 from hearth.zigbee import Device as ZDevice
 
 __all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHAOpenClose', 'ZHAPresence', 'ZHASwitch', 'ZHALight', 'ZHALightCT']
+LOGGER = logging.getLogger(__name__)
 
 
 class ZHASensor(ZDevice):
@@ -195,6 +197,12 @@ class ZHALight(ZDevice):
         """Dim down."""
         await self.brightness(
             self.state['brightness'] - 255 * percent / 100, transisiontime)
+
+    async def circle_brightness(self):
+        LOGGER.error("Start dim: Not implemented")
+
+    async def stop_circle_brightness(self):
+        LOGGER.error("Stop dim: Not implemented")
 
 
 class ZHALightCT(ZHALight):

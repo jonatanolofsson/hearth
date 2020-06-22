@@ -54,7 +54,7 @@ class ServerConnection:
         """Publish message on topic."""
         if isinstance(payload, dict) or isinstance(payload, list):
             payload = json.dumps(payload)
-        asyncio.ensure_future(self.mqtt.publish(topic, payload.encode(), qos))
+        asyncio.ensure_future(self.mqtt.publish(topic, str(payload).encode(), qos))
 
     async def sub(self, topic, callback, qos=0):
         """Subscribe to topic with callback."""

@@ -1,58 +1,77 @@
 """ZWave device classes."""
+import asyncio
 import json
 import logging
+import hearth
 from hearth import Device, mqtt
 
-__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer']
+__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer', 'ZWSwitchDimmer']
 WAIT_TIME = 10
 
 LOGGER = logging.getLogger(__name__)
 
 
 class ZWDevice(Device):
-    """SonOff switch."""
+    """ZWave device."""
 
-    async def __init__(self, id_, zwid):
+    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
         await super().__init__(id_)
         self.zwid = zwid
         self.mqtt = await mqtt.server()
-        self.zwstates = []
-        await self.mqtt.sub(f"zwave/updates/{self.zwid}", self.updatehandler)
+        self.zwstates = {}
+        self.zwstates_inv = {}
+        self.basetopic = f"{mqtt_prefix}/{self.zwid}"
+        await self.mqtt.sub(f"{self.basetopic}/status", self.statushandler)
 
-    async def updatehandler(self, _, payload):
+    async def subscribe(self):
+        await asyncio.gather(*[
+            self.mqtt.sub(f"{self.basetopic}/{key}", self.updatehandler)
+            for key in self.zwstates.values()])
+        self.zwstates_inv = {y: x for x, y in self.zwstates.items()}
+
+    async def updatehandler(self, topic, payload):
+        key = topic[len(self.basetopic) + 1:]
+        if key in self.zwstates_inv:
+            state = self.zwstates_inv[key]
+        try:
+            data = json.loads(payload)
+            LOGGER.info("Updating from zwave: %s: %s", state, data["value"])
+            await self.update_state({state: data["value"]})
+        except:
+            LOGGER.warning("Failed to parse MQTT message: %s", payload)
+
+    async def statushandler(self, _, payload):
         """Handle updatemessage from MQTT."""
         LOGGER.info("Getting zwave update: %s :: %s", self.zwid, payload)
         try:
-            await self.update_state(json.loads(payload))
+            data = json.loads(payload)
+            await self.update_state({"ready": data["value"], "status": data["status"]})
         except:
             LOGGER.warning("Failed to parse MQTT message: %s", payload)
 
     async def set_state(self, upd_state):
         """Update state."""
-        zwstates = {key: value for key, value in upd_state.items()
+        zwstates = {self.zwstates[key]: value for key, value in upd_state.items()
                     if key in self.zwstates}
         if zwstates:
-            await self.mqtt.pub(f"zwave/set/{self.zwid}", zwstates)
-            LOGGER.info("Publish zwstates on %s: %s", f"zwave/set/{self.zwid}", zwstates)
+            await asyncio.gather(*[self.mqtt.pub(f"{self.basetopic}/{key}/set", {"value": value}) for key, value in zwstates.items()])
+            LOGGER.info("Publish zwstates to %s: %s", {self.basetopic}, zwstates)
         await super().set_state(upd_state)
-
-    async def refresh(self, states=None):
-        await self.mqtt.pub(f"zwave/refresh/{self.zwid}",
-                            states or self.zwstates)
 
 
 class ZWThermostat(ZWDevice):
     """ZWave thermostat."""
-    async def __init__(self, id_, zwid):
-        await super().__init__(id_, zwid)
-        await super().init_state({'Heating 1': 21.0, "Battery Level": 100})
-        self.zwstates += ["Heating 1"]
+    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, mqtt_prefix)
+        await super().init_state({'temperature_setpoint': 21.0, "battery": 100})
+        self.zwstates["temperature_setpoint"] = "67/1/1"
+        self.zwstates["battery"] = "128/1/0"
         # FIXME: Set "Day", "Hour", "Minute"
-        await self.refresh()
+        await self.subscribe()
 
     async def set_temperature(self, setpoint):
         """Set new temperature setpoint."""
-        await self.set_state({"Heating 1": setpoint})
+        await self.set_state({"temperature_setpoint": setpoint})
 
     def ui(self):
         """Return jsx ui representation."""
@@ -66,32 +85,33 @@ class ZWThermostat(ZWDevice):
                                "max": 28,
                                "step": 0.5,
                                "dots": True},
-                     "state": "Heating 1"},
+                     "state": "temperature_setpoint"},
                     {"class": "Text",
                      "props": {"label": "Battery", "format": "{} %"},
-                     "state": "Battery Level"},
+                     "state": "battery"},
                 ]}
 
 
 class ZWSwitch(ZWDevice):
     """ZWave Switch."""
-    async def __init__(self, id_, zwid):
-        await super().__init__(id_, zwid)
-        await super().init_state({'Switch': False, "Energy": 0, "Power": 0})
-        self.zwstates += ["Switch"]
-        await self.refresh()
+    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, mqtt_prefix)
+        await super().init_state({'switch': False, "power": 0})
+        self.zwstates["switch"] = f"37/{endpoint}/0"
+        self.zwstates["power"] = f"50/{endpoint}/2"
+        await self.subscribe()
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
-        await self.set_state({'Switch': True})
+        await self.set_state({'switch': True})
 
     async def off(self):
         """Switch off."""
-        await self.set_state({'Switch': False})
+        await self.set_state({'switch': False})
 
     async def toggle(self):
         """Toggle."""
-        await (self.off() if self.state['Switch'] else self.on())
+        await (self.off() if self.state['switch'] else self.on())
 
     def ui(self):
         """Return ui representation."""
@@ -100,57 +120,61 @@ class ZWSwitch(ZWDevice):
                 "ui": [
                     {"class": "Switch",
                      "props": {"label": "On"},
-                     "state": "Switch"},
+                     "state": "switch"},
+                    {"class": "Text",
+                        "props": {"label": "Power", "format": "{:1} W"},
+                     "state": "power"},
                 ]}
 
 
 class ZWDimmer(ZWDevice):
     """ZWave dimmer."""
-    async def __init__(self, id_, zwid):
-        await super().__init__(id_, zwid)
-        await super().init_state({"Switch": False, "Level": 0, "Energy": 0, "Power": 0, "ResumeLevel": 99})
-        self.zwstates += ["Level", "Energy", "Power"]
-        await self.refresh()
+    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, mqtt_prefix)
+        await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99})
+        self.zwstates["level"] = "38/1/0"
+        self.zwstates["power"] = "50/1/2"
+        await self.subscribe()
 
     async def set_state(self, upd_state):
         """Update state."""
-        if "Switch" in upd_state:
-            if upd_state["Switch"]:
+        if "switch" in upd_state:
+            if upd_state["switch"]:
                 await self.on()
             else:
                 await self.off()
-            del upd_state["Switch"]
+            del upd_state["switch"]
 
         await super().set_state(upd_state)
-        self.state["Switch"] = (self.state["Level"] > 0.01)
-        if self.state["Level"] > 0:
-            self.state["ResumeLevel"] = self.state["Level"]
+        self.state["switch"] = (self.state["level"] > 0.01)
+        if self.state["level"] > 0:
+            self.state["resumelevel"] = self.state["level"]
 
     async def update_state(self, upd_state, set_seen=True):
-        if "Level" in upd_state:
-            upd_state["Switch"] = (upd_state["Level"] > 0.01)
-            if upd_state["Level"] > 0.01:
-                upd_state["ResumeLevel"] = upd_state["Level"]
+        if "level" in upd_state:
+            upd_state["switch"] = (upd_state["level"] > 0.01)
+            if upd_state["level"] > 0.01:
+                upd_state["resumelevel"] = upd_state["level"]
         await super().update_state(upd_state, set_seen)
 
     async def on(self):  # pylint: disable=invalid-name
         """Switch on."""
-        level = self.state.get("ResumeLevel", 99)
+        level = self.state.get("resumelevel", 99)
         if level < 0.01:
             level = 99
-        await self.set_state({'Level': level})
+        await self.set_state({'level': level})
 
     async def off(self):
         """Switch off."""
-        await self.set_state({'Level': 0})
+        await self.set_state({'level': 0})
 
     async def toggle(self):
         """Toggle."""
-        await (self.off() if self.state['Switch'] else self.on())
+        await (self.off() if self.state['switch'] else self.on())
 
     async def brightness(self, bri, transisiontime=0):
         """Set brightness."""
-        await self.set_state({'Level': min(max(0, int(bri)), 99)})
+        await self.set_state({'level': min(max(0, int(bri)), 99)})
 
     async def dim_up(self, percent=10, transisiontime=0):
         """Dim up."""
@@ -167,14 +191,26 @@ class ZWDimmer(ZWDevice):
                 "ui": [
                     {"class": "Switch",
                      "props": {"label": "On"},
-                     "state": "Switch"},
+                     "state": "switch"},
                     {"class": "Slider",
                      "props": {"label": "Brightness",
                                "min": 0,
                                "max": 99,
                                "step": 1},
-                     "state": "Level"},
+                     "state": "level"},
                     {"class": "Text",
                         "props": {"label": "Power", "format": "{:1} W"},
-                     "state": "Power"},
+                     "state": "power"},
                 ]}
+
+
+class ZWSwitchDimmer(ZWDevice):
+    """ZWave Switch."""
+    async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, mqtt_prefix)
+        self.zwstates["event"] = f"91/1/{endpoint}"
+        self.device = device
+        self.listen("statechange:event:Key Held down", self.device.circle_brightness)
+        self.listen("statechange:event:Key Released", self.device.stop_circle_brightness)
+        hearth.add_devices(device)
+        await self.subscribe()
