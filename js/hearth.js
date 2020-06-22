@@ -194,14 +194,13 @@ class DeviceDialog extends Component {
                 );
             case "Text":
                 if (c.state) {
+                    c.props.value = (c.state in state ? state[c.state] : "");
                     if (c.props.format) {
-                        c.props.value = c.props.format.replace(/{(?::(\d+))?}/g, function(match, p1) { return (p1 ? state[c.state].toFixed(parseInt(p1, 10)) : state[c.state]); });
-                    } else {
-                        c.props.value = state[c.state];
+                        c.props.value = c.props.format.replace(/{(?::(\d+))?}/g, function(match, p1) { return (p1 ? c.props.value.toFixed(parseInt(p1, 10)) : c.props.value); });
                     }
                 }
                 return (
-                    <table key={key} width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value}</td></tr></tbody></table>
+                    <table key={key} width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value.toString()}</td></tr></tbody></table>
                 );
             case "C3Chart":
                 if (c.state) {
