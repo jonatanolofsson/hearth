@@ -2,6 +2,7 @@
 import sys
 from datetime import timedelta, datetime, time
 import astral
+import astral.location
 import pytz
 
 
@@ -12,7 +13,7 @@ class TZ:
 
     def set_locale(self, name, region, tzname, lat, lon):
         """Set locale."""
-        self.location = astral.LocationInfo((name, region, tzname, lat, lon))
+        self.location = astral.location.Location(astral.LocationInfo((name, region, tzname, lat, lon)))
 
     def daylight(self, when=None, delta=None):
         """Return true if time is within daylight hours
@@ -42,7 +43,7 @@ class TZ:
 
     def __getattr__(self, attr):
         """Getattr"""
-        return getattr(self.location, attr)()
+        return getattr(self.location, attr)
 
 
 sys.modules[__name__] = TZ()
