@@ -214,7 +214,7 @@ class ServerConnection:
             return False
         return self.devices[uniqueid]
 
-    async def open_network(self, duration=3600):
+    async def open_network(self, duration=255):
         """Open network for device joins."""
         await self.put('config', {"permitjoin": int(duration)})
 
