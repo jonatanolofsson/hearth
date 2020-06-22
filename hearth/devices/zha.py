@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from hearth.device import Device as DeviceBase
 from hearth.zigbee import Device as ZDevice
 
-__all__ = ['ZigbeeController', 'ZHATemperature', 'ZHAHumidity', 'ZHAOpenClose', 'ZHAPresence', 'ZHASwitch', 'ZHALight', 'ZHALightCT']
+__all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHAOpenClose', 'ZHAPresence', 'ZHASwitch', 'ZHALight', 'ZHALightCT']
 
 
 class ZHASensor(ZDevice):

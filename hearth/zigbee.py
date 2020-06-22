@@ -1,41 +1,10 @@
 """Zigbee server."""
-import asyncio
 import json
 import logging
 from hearth import mqtt
-from asyncinit import asyncinit
 from .device import Device as DeviceBase
-from . import hearth
 
 LOGGER = logging.getLogger(__name__)
-
-
-class ZigbeeController(DeviceBase):
-    """Control the Zigbee backend."""
-    async def __init__(self, *args, **kwargs):
-        """Init."""
-        await super().__init__(*args, **kwargs)
-        await self.update_state({})
-
-    async def open_network(self):
-        """open network."""
-        self.mqtt.publish('zigbee2mqtt/bridge/config/permit_join', 'true')
-
-    async def close_network(self):
-        """open network."""
-        self.mqtt.publish('zigbee2mqtt/bridge/config/permit_join', 'false')
-
-    def ui(self):
-        """UI."""
-        return {"ui": [
-                    {"class": "Button",
-                     "props": {"label": "Open network"},
-                     "action": "open_network"},
-                    {"class": "Button",
-                     "props": {"label": "Close network"},
-                     "action": "close_network"}
-                ]
-                + self.events_ui()}
 
 
 class Device(DeviceBase):
