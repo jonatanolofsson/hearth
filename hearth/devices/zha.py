@@ -156,6 +156,10 @@ class ZHALight(ZDevice):
                      "state": "brightness"}
                 ]}
 
+    async def is_on(self):
+        """Check if light is on."""
+        return self.state['state']
+
     async def set_state(self, upd_state):
         """Set new state."""
         if 'brightness' in upd_state\
@@ -183,20 +187,20 @@ class ZHALight(ZDevice):
         """Toggle."""
         await (self.off() if self.state['state'] else self.on())
 
-    async def brightness(self, bri, transisiontime=0):
+    async def brightness(self, bri, transitiontime=0):
         """Set brightness."""
         await self.set_state({'brightness': min(max(0, int(bri)), 255),
-                              'transition': transisiontime})
+                              'transition': transitiontime})
 
-    async def dim_up(self, percent=10, transisiontime=0):
+    async def dim_up(self, percent=10, transitiontime=0):
         """Dim up."""
         await self.brightness(
-            self.state['brightness'] + 255 * percent / 100, transisiontime)
+            self.state['brightness'] + 255 * percent / 100, transitiontime)
 
-    async def dim_down(self, percent=10, transisiontime=0):
+    async def dim_down(self, percent=10, transitiontime=0):
         """Dim down."""
         await self.brightness(
-            self.state['brightness'] - 255 * percent / 100, transisiontime)
+            self.state['brightness'] - 255 * percent / 100, transitiontime)
 
     async def circle_brightness(self):
         LOGGER.error("Start dim: Not implemented")
@@ -227,17 +231,17 @@ class ZHALightCT(ZHALight):
              "state": "color_temp"})
         return uix
 
-    async def temperature(self, ct, transisiontime=0):
+    async def temperature(self, ct, transitiontime=0):
         """Set color temperature."""
         await self.set_state({'color_temp': min(max(self.ctmin, ct), self.ctmax),
-                              'transision': transisiontime})
+                              'transition': transitiontime})
 
-    async def warmer(self, percent=10, transisiontime=0):
+    async def warmer(self, percent=10, transitiontime=0):
         """Warmer light color."""
         await self.temperature(self.state['color_temp'] + (self.ctmax - self.ctmin) * percent / 100,
-                               transisiontime)
+                               transitiontime)
 
-    async def colder(self, percent=10, transisiontime=0):
+    async def colder(self, percent=10, transitiontime=0):
         """Colder light color."""
         await self.temperature(self.state['color_temp'] - (self.ctmax - self.ctmin) * percent / 100,
-                               transisiontime)
+                               transitiontime)

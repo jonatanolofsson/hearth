@@ -61,7 +61,7 @@ class Room(Device):
     async def toggle(self):
         """Toggle room, following biglight."""
         LOGGER.debug("Toggle")
-        await (self.off() if self.primary_device.state['on'] else self.on())
+        await (self.off() if self.primary_device.is_on() else self.on())
 
     async def set_state(self, upd_state):
         """Set new state."""
