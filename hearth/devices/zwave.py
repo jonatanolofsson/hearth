@@ -208,9 +208,37 @@ class ZWSwitchDimmer(ZWDevice):
     """ZWave Switch."""
     async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, mqtt_prefix)
+        await super().init_state({'switch': False})
+        self.zwstates["switch"] = f"37/{endpoint}/0"
         self.zwstates["event"] = f"91/1/{endpoint}"
         self.device = device
         self.listen("statechange:event:Key Held down", self.device.circle_brightness)
         self.listen("statechange:event:Key Released", self.device.stop_circle_brightness)
         hearth.add_devices(device)
         await self.subscribe()
+
+    async def on(self):  # pylint: disable=invalid-name
+        """Switch on."""
+        await self.set_state({'switch': True})
+
+    async def off(self):
+        """Switch off."""
+        await self.set_state({'switch': False})
+
+    async def toggle(self):
+        """Toggle."""
+        await (self.off() if self.state['switch'] else self.on())
+
+    def ui(self):
+        """Return ui representation."""
+        return {"rightIcon": "indeterminate_check_box",
+                "rightAction": "toggle",
+                "ui": [
+                    {"class": "Switch",
+                     "props": {"label": "On"},
+                     "state": "switch"},
+                    {"class": "Text",
+                        "props": {"label": "Power", "format": "{:1} W"},
+                     "state": "power"},
+                ]}
+
