@@ -130,6 +130,10 @@ def main():
     def ask_exit(signame):
         """Signal handler."""
         print("got signal %s: exit" % signame)
+        print("Active tasks: ")
+        for task in asyncio.Task.all_tasks():
+            if not task.done():
+                print(task)
         loop.stop()
 
     for signame in ('SIGINT', 'SIGTERM'):
