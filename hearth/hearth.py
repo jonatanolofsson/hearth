@@ -152,8 +152,8 @@ def main():
                                       asyncio.CancelledError):
                 loop.default_exception_handler(context)
 
-        tasks = asyncio.gather(*asyncio.Task.all_tasks(loop=loop),
-                               loop=loop, return_exceptions=True)
+        tasks = asyncio.gather(*asyncio.all_tasks(),
+                               return_exceptions=True)
         tasks.add_done_callback(lambda t: loop.stop())
         tasks.cancel()
 

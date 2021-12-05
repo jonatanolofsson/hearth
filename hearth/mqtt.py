@@ -3,7 +3,7 @@ import asyncio
 import logging
 import json
 from asyncinit import asyncinit
-from hbmqtt.client import MQTTClient
+from amqtt.client import MQTTClient
 
 LOGGER = logging.getLogger(__name__)
 
