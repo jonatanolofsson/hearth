@@ -14,9 +14,10 @@ LOGGER = logging.getLogger(__name__)
 class ZWDevice(Device):
     """ZWave device."""
 
-    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
+    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
         await super().__init__(id_)
         self.zwid = zwid
+        self.endpoint = endpoint
         self.mqtt = await mqtt.server()
         self.zwstates = {}
         self.zwstates_inv = {}
@@ -24,21 +25,25 @@ class ZWDevice(Device):
         await self.mqtt.sub(f"{self.basetopic}/status", self.statushandler)
 
     async def subscribe(self):
+        self.zwstates_inv = {y: x for x, y in self.zwstates.items()}
         await asyncio.gather(*[
             self.mqtt.sub(f"{self.basetopic}/{key}", self.updatehandler)
             for key in self.zwstates.values()])
-        self.zwstates_inv = {y: x for x, y in self.zwstates.items()}
 
     async def updatehandler(self, topic, payload):
         key = topic[len(self.basetopic) + 1:]
         if key in self.zwstates_inv:
             state = self.zwstates_inv[key]
+        else:
+            print(self.zwstates_inv)
+            LOGGER.info("Invalid topic: %s: %s", topic, payload)
+            return
         try:
             data = json.loads(payload)
             LOGGER.info("Updating from zwave: %s: %s", state, data["value"])
             await self.update_state({state: data["value"]})
         except:
-            LOGGER.warning("Failed to parse MQTT message: %s", payload)
+            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s", topic, key, state, payload)
 
     async def statushandler(self, _, payload):
         """Handle updatemessage from MQTT."""
@@ -47,7 +52,7 @@ class ZWDevice(Device):
             data = json.loads(payload)
             await self.update_state({"ready": data["value"], "status": data["status"]})
         except:
-            LOGGER.warning("Failed to parse MQTT message: %s", payload)
+            LOGGER.warning("Failed to parse MQTT status message: %s", payload)
 
     async def set_state(self, upd_state):
         """Update state."""
@@ -61,11 +66,11 @@ class ZWDevice(Device):
 
 class ZWThermostat(ZWDevice):
     """ZWave thermostat."""
-    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
-        await super().__init__(id_, zwid, mqtt_prefix)
+    async def __init__(self, id_, zwid, endpoint=0, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, endpoint, mqtt_prefix)
         await super().init_state({'temperature_setpoint': 21.0, "battery": 100})
-        self.zwstates["temperature_setpoint"] = "67/1/1"
-        self.zwstates["battery"] = "128/1/0"
+        self.zwstates["temperature_setpoint"] = "67/0/setpoint/1"
+        self.zwstates["battery"] = "128/0/level"
         # FIXME: Set "Day", "Hour", "Minute"
         await self.subscribe()
 
@@ -97,8 +102,8 @@ class ZWSwitch(ZWDevice):
     async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, mqtt_prefix)
         await super().init_state({'switch': False, "power": 0})
-        self.zwstates["switch"] = f"37/{endpoint}/0"
-        self.zwstates["power"] = f"50/{endpoint}/2"
+        self.zwstates["switch"] = f"37/{endpoint}/currentValue"
+        self.zwstates["power"] = f"50/{endpoint}/value/66049"
         await self.subscribe()
 
     async def on(self):  # pylint: disable=invalid-name
@@ -129,11 +134,11 @@ class ZWSwitch(ZWDevice):
 
 class ZWDimmer(ZWDevice):
     """ZWave dimmer."""
-    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
-        await super().__init__(id_, zwid, mqtt_prefix)
+    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, endpoint, mqtt_prefix)
         await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99})
-        self.zwstates["level"] = "38/1/0"
-        self.zwstates["power"] = "50/1/2"
+        self.zwstates["level"] = f"38/{endpoint}/currentValue"
+        self.zwstates["power"] = f"49/{endpoint}/Power"
         await self.subscribe()
 
     async def set_state(self, upd_state):
@@ -209,7 +214,7 @@ class ZWSwitchDimmer(ZWDevice):
     async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, mqtt_prefix)
         await super().init_state({'switch': False})
-        self.zwstates["switch"] = f"37/{endpoint}/0"
+        self.zwstates["switch"] = f"38/{endpoint}/0"
         self.zwstates["event"] = f"91/1/{endpoint}"
         self.device = device
         self.listen("statechange:event:Key Held down", self.device.circle_brightness)

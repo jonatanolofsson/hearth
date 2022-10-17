@@ -3,58 +3,68 @@ from datetime import datetime, timedelta
 from hearth.device import Device as DeviceBase
 from hearth.zigbee import Device as ZDevice
 
-__all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHAOpenClose', 'ZHAPresence', 'ZHASwitch', 'ZHALight', 'ZHALightCT']
+__all__ = ['ZHATemperature', 'ZHAHumidity', 'ZHAPressure', 'ZHAWeather', 'ZHAContact', 'ZHAPresence', 'ZHASwitch', 'ZHALight', 'ZHALightCT']
 LOGGER = logging.getLogger(__name__)
 
 
 class ZHASensor(ZDevice):
     """Temperature device."""
 
-    async def __init__(self, mainstate, *args, **kwargs):
+    async def __init__(self, sensor_states, *args, **kwargs):
         """Init."""
-        self.mainstate = mainstate
-        self.divisor = 100
+        self.sensor_states = [sensor_states] if isinstance(sensor_states, str) else sensor_states
+        self.divisor = 1
+        self.history_window = 1
         self.discrete = True
         await super().__init__(*args, **kwargs)
-        await super().init_state({mainstate: False})
-        self.zbstates += [mainstate]
+        await super().init_state({sensorstate: False for sensorstate in self.sensor_states})
+        self.zbstates += self.sensor_states
 
     def ui(self):
         """Return ui representation."""
-        plotdata = []
-        lasttime = str(datetime.now() - timedelta(hours=1)).split('.')[0]
-        if self.discrete:
-            t = tprev = str(datetime.now()).split('.')[0]
-            sprev = self.state[self.mainstate]
-            lstart = (tprev, int(sprev))
-            for t, s, in reversed(self.history):
-                t = t.partition('.')[0]
-                if sprev != s[self.mainstate]:
-                    plotdata.append({'x': lstart[0], 'y': lstart[1]})
-                    plotdata.append({'x': tprev, 'y': lstart[1]})
-                    lstart = (tprev, int(s[self.mainstate]))
-                tprev = t
-                sprev = s[self.mainstate]
-                if t < lasttime:
-                    t = lasttime
-                    break
-            plotdata.append({'x': lstart[0], 'y': lstart[1]})
-            if t != tprev:
-                plotdata.append({'x': t, 'y': lstart[1]})
-        else:
-            for t, s, in reversed(self.history):
-                if self.mainstate not in s:
-                    continue
-                t = t.partition('.')[0]
-                if t < lasttime:
-                    break
-                plotdata.append({'x': t, 'y': s[self.mainstate] / self.divisor})
-        plotdata.reverse()
-
-        return {
-            "ui": [
+        result = {
+            "ui": [],
+            "state": {}}
+        if isinstance(self.discrete, bool):
+            self.discrete = [self.discrete] * len(self.sensor_states)
+        if isinstance(self.divisor, (float, int)):
+            self.divisor = [self.divisor] * len(self.sensor_states)
+        if isinstance(self.history_window, (float, int)):
+            self.history_window = [self.history_window] * len(self.sensor_states)
+        for sensorstate, divisor, discrete, windowsize in zip(self.sensor_states, self.divisor, self.discrete, self.history_window):
+            plotdata = []
+            lasttime = str(datetime.now() - timedelta(hours=windowsize)).split('.')[0]
+            if discrete:
+                t = tprev = str(datetime.now()).split('.')[0]
+                sprev = self.state[sensorstate]
+                lstart = (tprev, int(sprev))
+                for t, s, in reversed(self.history):
+                    t = t.partition('.')[0]
+                    if sprev != s[sensorstate]:
+                        plotdata.append({'x': lstart[0], 'y': lstart[1]})
+                        plotdata.append({'x': tprev, 'y': lstart[1]})
+                        lstart = (tprev, int(s[sensorstate]))
+                    tprev = t
+                    sprev = s[sensorstate]
+                    if t < lasttime:
+                        t = lasttime
+                        break
+                plotdata.append({'x': lstart[0], 'y': lstart[1]})
+                if t != tprev:
+                    plotdata.append({'x': t, 'y': lstart[1]})
+            else:
+                for t, s, in reversed(self.history):
+                    if sensorstate not in s:
+                        continue
+                    t = t.partition('.')[0]
+                    if t < lasttime:
+                        break
+                    plotdata.append({'x': t, 'y': s[sensorstate] / divisor})
+            plotdata.reverse()
+            result["state"][f"plotdata_{sensorstate}"] = plotdata
+            result["ui"].append(
                 {"class": "C3Chart",
-                 "state": "plotdata",
+                 "state": f"plotdata_{sensorstate}",
                  "props": {
                      "data": {
                          "keys": {"x": "x", "value": ["y"]},
@@ -70,12 +80,15 @@ class ZHASensor(ZDevice):
                              "tick": {"format": "%H:%M"}
                          },
                      }
-                 }},
+                 }
+                }
+            )
+        if "battery" in self.state:
+            result["ui"].append(
                 {"class": "Text",
                  "props": {"label": "Battery", "format": "{} %"},
-                 "state": "battery"},
-            ],
-            "state": {"plotdata": plotdata}}
+                 "state": "battery"})
+        return result
 
 
 class ZHATemperature(ZHASensor):
@@ -88,7 +101,7 @@ class ZHATemperature(ZHASensor):
 
 
 class ZHAHumidity(ZHASensor):
-    """Zigbee temperature sensor."""
+    """Zigbee humidity sensor."""
 
     async def __init__(self, *args, **kwargs):
         """Init."""
@@ -96,7 +109,25 @@ class ZHAHumidity(ZHASensor):
         self.discrete = False
 
 
-class ZHAOpenClose(ZHASensor):
+class ZHAPressure(ZHASensor):
+    """Zigbee pressure sensor."""
+
+    async def __init__(self, *args, **kwargs):
+        """Init."""
+        await super().__init__('pressure', *args, **kwargs)
+        self.discrete = False
+
+
+class ZHAWeather(ZHASensor):
+    """Zigbee pressure sensor."""
+
+    async def __init__(self, *args, **kwargs):
+        """Init."""
+        await super().__init__(['temperature', 'humidity', 'pressure'], *args, **kwargs)
+        self.discrete = False
+
+
+class ZHAContact(ZHASensor):
     """Zigbee window/door sensor."""
 
     async def __init__(self, *args, **kwargs):
@@ -125,8 +156,8 @@ class ZHASwitch(ZDevice):
 
     async def update_state(self, upd_state, set_seen=True):
         """Update state."""
-        if 'click' in upd_state:
-            self.event(upd_state['click'])
+        if 'action' in upd_state:
+            self.event(upd_state['action'])
             await super().update_state({}, set_seen)
         else:
             await super().update_state(upd_state, set_seen)

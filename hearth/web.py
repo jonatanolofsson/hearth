@@ -13,6 +13,7 @@ ROOT_DIR = os.path.dirname(THIS_DIR)
 WEBROOT = ROOT_DIR + '/www'
 
 
+WEBSERVER = None
 WEBAPP = Sanic(__name__)
 WEBAPP.static("/static", WEBROOT)
 SOCKETS = set()
@@ -28,7 +29,7 @@ async def index(_):
 async def action(request, device='', method=''):
     """Main page."""
     data = {
-        "id": device if device is not "0" else 0,
+        "id": device if device != "0" else 0,
         "m": method,
         "args": request.args.getlist("args", [])
     }
@@ -72,10 +73,15 @@ def broadcast(payload):
     """Send data to all websocket listeners."""
     asyncio.ensure_future(asyncio.gather(*[s.send(payload) for s in SOCKETS]))
 
+async def aserve(host="0.0.0.0", port=80):
+    """Start webserver."""
+    global WEBSERVER
+    WEBSERVER = await WEBAPP.create_server(host=host, port=port, return_asyncio_server=True)
+    await WEBSERVER.startup()
 
 def serve(host="0.0.0.0", port=80):
     """Start webserver."""
-    asyncio.ensure_future(WEBAPP.create_server(host=host, port=port, return_asyncio_server=True))
+    asyncio.ensure_future(aserve())
     for key in logging.Logger.manager.loggerDict:
         if key.startswith("websockets") or key.startswith("sanic"):
             logging.getLogger(key).setLevel(logging.WARNING)

@@ -96,13 +96,13 @@ class Device:
         overloading."""
         if set_seen:
             upd_state.update({'reachable': True})
-            upd_state.update({'last_seen': str(datetime.now())})
+            upd_state.update({'last_seen': datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
         upd_state = {key: value for key, value in upd_state.items() if key not in self.state}
 
         if upd_state:
             self.state.update(upd_state)
-            self.history.append([str(datetime.now()), deepcopy(self.state)])
+            self.history.append([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), deepcopy(self.state)])
 
     async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
@@ -118,10 +118,10 @@ class Device:
 
         if set_seen:
             upd_state.update({'reachable': True})
-            upd_state.update({'last_seen': str(datetime.now())})
+            upd_state.update({'last_seen': datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
         old_state = deepcopy(self.state)
         self.state.update(upd_state)
-        self.history.append([str(datetime.now()), deepcopy(self.state)])
+        self.history.append([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), deepcopy(self.state)])
         self.refresh_ui()
         self.event('statechange', self)
         for key in actually_updated:
@@ -202,7 +202,9 @@ class Device:
 
     def refresh_ui(self):
         """Announce state changes."""
+        LOGGER.info("Refreshing UI: %s", self.id)
         web.broadcast(self.webmessage(self.serialize()))
+        self.event('refresh_ui')
 
     def __getitem__(self, key):
         """Map [] to state."""

@@ -344,9 +344,9 @@ class Hearth extends Component {
     }
 
     render() {
-        const devices = this.state.filterText
+        const devices = (this.state.filterText
             ? fuzzysort(this.state.filterText, Object.values(this.state.devices), {key: 'id'}).map(x => x.obj)
-            : Object.values(this.state.devices).sort((a,b) => String(a.id).localeCompare(String(b.id)));
+            : Object.values(this.state.devices)).sort((a,b) => (a.id < b.id ? -1 : (a.id > b.id ? 1 : 0)));
         return (
             <MuiThemeProvider theme={theme}>
                 <div>

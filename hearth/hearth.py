@@ -131,7 +131,7 @@ def main():
         """Signal handler."""
         print("got signal %s: exit" % signame)
         print("Active tasks: ")
-        for task in asyncio.Task.all_tasks():
+        for task in asyncio.all_tasks(loop=loop):
             if not task.done():
                 print(task)
         loop.stop()
@@ -152,7 +152,7 @@ def main():
                                       asyncio.CancelledError):
                 loop.default_exception_handler(context)
 
-        tasks = asyncio.gather(*asyncio.all_tasks(),
+        tasks = asyncio.gather(*asyncio.all_tasks(loop=loop),
                                return_exceptions=True)
         tasks.add_done_callback(lambda t: loop.stop())
         tasks.cancel()
