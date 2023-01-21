@@ -5,7 +5,7 @@ import logging
 import hearth
 from hearth import Device, mqtt
 
-__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer', 'ZWSwitchDimmer']
+__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer']  #, 'ZWSwitchDimmer']
 WAIT_TIME = 10
 
 LOGGER = logging.getLogger(__name__)
@@ -35,15 +35,14 @@ class ZWDevice(Device):
         if key in self.zwstates_inv:
             state = self.zwstates_inv[key]
         else:
-            print(self.zwstates_inv)
             LOGGER.info("Invalid topic: %s: %s", topic, payload)
             return
         try:
             data = json.loads(payload)
-            LOGGER.info("Updating from zwave: %s: %s", state, data["value"])
-            await self.update_state({state: data["value"]})
-        except:
-            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s", topic, key, state, payload)
+            LOGGER.info("Updating from zwave: %s: %s", state, data)
+            await self.update_state({state: data["value"] if "value" in data else None})
+        except Exception as e:
+            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s :: %s", topic, key, state, payload, e)
 
     async def statushandler(self, _, payload):
         """Handle updatemessage from MQTT."""
@@ -134,12 +133,30 @@ class ZWSwitch(ZWDevice):
 
 class ZWDimmer(ZWDevice):
     """ZWave dimmer."""
-    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
-        await super().__init__(id_, zwid, endpoint, mqtt_prefix)
-        await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99})
-        self.zwstates["level"] = f"38/{endpoint}/currentValue"
-        self.zwstates["power"] = f"49/{endpoint}/Power"
+    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
+        await super().__init__(id_, zwid, 1, mqtt_prefix)
+        await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99, "resumelevel2": 99})
+        self.zwstates["level"] = f"38/1/currentValue"
+        self.zwstates["level2"] = f"38/2/currentValue"
+        self.zwstates["power"] = f"49/1/Power"
+        self.zwstates["event"] = "43/0/sceneId"
         await self.subscribe()
+        self.listen("statechange:event", self.scene_change)
+
+    async def scene_change(self, scene):
+        events = {
+            16: "s1_1click",
+            14: "s1_2click",
+            12: "s1_hold",
+            13: "s1_release",
+            26: "s2_1click",
+            24: "s2_2click",
+            25: "s2_3click",
+            22: "s2_hold",
+            23: "s2_release",
+        }
+        if scene in events:
+            self.event(events[scene])
 
     async def set_state(self, upd_state):
         """Update state."""
@@ -154,12 +171,16 @@ class ZWDimmer(ZWDevice):
         self.state["switch"] = (self.state["level"] > 0.01)
         if self.state["level"] > 0:
             self.state["resumelevel"] = self.state["level"]
+        if self.state["level2"] > 0:
+            self.state["resumelevel2"] = self.state["level2"]
 
     async def update_state(self, upd_state, set_seen=True):
         if "level" in upd_state:
             upd_state["switch"] = (upd_state["level"] > 0.01)
             if upd_state["level"] > 0.01:
                 upd_state["resumelevel"] = upd_state["level"]
+            if upd_state["level2"] > 0.01:
+                upd_state["resumelevel2"] = upd_state["level2"]
         await super().update_state(upd_state, set_seen)
 
     async def on(self):  # pylint: disable=invalid-name
@@ -209,41 +230,41 @@ class ZWDimmer(ZWDevice):
                 ]}
 
 
-class ZWSwitchDimmer(ZWDevice):
-    """ZWave Switch."""
-    async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
-        await super().__init__(id_, zwid, mqtt_prefix)
-        await super().init_state({'switch': False})
-        self.zwstates["switch"] = f"38/{endpoint}/0"
-        self.zwstates["event"] = f"91/1/{endpoint}"
-        self.device = device
-        self.listen("statechange:event:Key Held down", self.device.circle_brightness)
-        self.listen("statechange:event:Key Released", self.device.stop_circle_brightness)
-        hearth.add_devices(device)
-        await self.subscribe()
+# class ZWSwitchDimmer(ZWDevice):
+    # """ZWave Switch."""
+    # async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
+        # await super().__init__(id_, zwid, mqtt_prefix)
+        # await super().init_state({'switch': False})
+        # self.zwstates["switch"] = f"38/{endpoint}/0"
+        # self.zwstates["event"] = f"91/1/{endpoint}"
+        # self.device = device
+        # self.listen("statechange:event:Key Held down", self.device.circle_brightness)
+        # self.listen("statechange:event:Key Released", self.device.stop_circle_brightness)
+        # hearth.add_devices(device)
+        # await self.subscribe()
 
-    async def on(self):  # pylint: disable=invalid-name
-        """Switch on."""
-        await self.set_state({'switch': True})
+    # async def on(self):  # pylint: disable=invalid-name
+        # """Switch on."""
+        # await self.set_state({'switch': True})
 
-    async def off(self):
-        """Switch off."""
-        await self.set_state({'switch': False})
+    # async def off(self):
+        # """Switch off."""
+        # await self.set_state({'switch': False})
 
-    async def toggle(self):
-        """Toggle."""
-        await (self.off() if self.state['switch'] else self.on())
+    # async def toggle(self):
+        # """Toggle."""
+        # await (self.off() if self.state['switch'] else self.on())
 
-    def ui(self):
-        """Return ui representation."""
-        return {"rightIcon": "indeterminate_check_box",
-                "rightAction": "toggle",
-                "ui": [
-                    {"class": "Switch",
-                     "props": {"label": "On"},
-                     "state": "switch"},
-                    {"class": "Text",
-                        "props": {"label": "Power", "format": "{:1} W"},
-                     "state": "power"},
-                ]}
+    # def ui(self):
+        # """Return ui representation."""
+        # return {"rightIcon": "indeterminate_check_box",
+                # "rightAction": "toggle",
+                # "ui": [
+                    # {"class": "Switch",
+                     # "props": {"label": "On"},
+                     # "state": "switch"},
+                    # {"class": "Text",
+                        # "props": {"label": "Power", "format": "{:1} W"},
+                     # "state": "power"},
+                # ]}
 

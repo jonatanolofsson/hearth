@@ -168,7 +168,7 @@ class ZHALight(ZDevice):
 
     async def __init__(self, *args, **kwargs):
         await super().__init__(*args, **kwargs)
-        self.zbstates += ['state', 'brightness']
+        self.zbstates += ['state', 'brightness', 'brightness_move_onoff']
         await super().init_state({'state': False, 'brightness': 100})
 
     def ui(self):
@@ -233,11 +233,17 @@ class ZHALight(ZDevice):
         await self.brightness(
             self.state['brightness'] - 255 * percent / 100, transitiontime)
 
-    async def circle_brightness(self):
-        LOGGER.error("Start dim: Not implemented")
+    async def cycle_brightness(self):
+        """Start moving brightness level (down if max, else up)"""
+        # brightness_move: https://www.zigbee2mqtt.io/devices/LED1545G12.html#ikea-led1545g12
+        if self.state['brightness'] >= 250:
+            await self.set_state({'brightness_move_onoff': -40})
+        else:
+            await self.set_state({'brightness_move_onoff': 40})
 
-    async def stop_circle_brightness(self):
-        LOGGER.error("Stop dim: Not implemented")
+    async def stop_cycle_brightness(self):
+        """Stop moving brightness level"""
+        await self.set_state({'brightness_move_onoff': 0})
 
 
 class ZHALightCT(ZHALight):

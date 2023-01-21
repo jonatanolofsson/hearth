@@ -125,13 +125,13 @@ class Device:
         self.refresh_ui()
         self.event('statechange', self)
         for key in actually_updated:
-            self.event(f'statechange:{key}', self, key, self.state[key], old_state.get(key, None))
+            self.event(f'statechange:{key}', self.state[key], old_state.get(key, None), key, self)
             self.event(f'statechange:{key}:{self.state[key]}',
-                       self, key, self.state[key], old_state.get(key, None))
+                       self.state[key], old_state.get(key, None), key, self)
         for key in upd_state:
-            self.event(f'stateupdate:{key}', self, key, self.state[key], old_state.get(key, None))
+            self.event(f'stateupdate:{key}', self.state[key], old_state.get(key, None), key, self)
             self.event(f'stateupdate:{key}:{self.state[key]}',
-                       self, key, self.state[key], old_state.get(key, None))
+                       self.state[key], old_state.get(key, None), key, self)
 
     def expect_update(self, timeout):
         """Ensure update is called within a given timeout."""
