@@ -135,9 +135,8 @@ class ZWDimmer(ZWDevice):
     """ZWave dimmer."""
     async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, 1, mqtt_prefix)
-        await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99, "resumelevel2": 99})
+        await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99})
         self.zwstates["level"] = f"38/1/currentValue"
-        self.zwstates["level2"] = f"38/2/currentValue"
         self.zwstates["power"] = f"49/1/Power"
         self.zwstates["event"] = "43/0/sceneId"
         await self.subscribe()
@@ -171,16 +170,12 @@ class ZWDimmer(ZWDevice):
         self.state["switch"] = (self.state["level"] > 0.01)
         if self.state["level"] > 0:
             self.state["resumelevel"] = self.state["level"]
-        if self.state["level2"] > 0:
-            self.state["resumelevel2"] = self.state["level2"]
 
     async def update_state(self, upd_state, set_seen=True):
         if "level" in upd_state:
             upd_state["switch"] = (upd_state["level"] > 0.01)
             if upd_state["level"] > 0.01:
                 upd_state["resumelevel"] = upd_state["level"]
-            if upd_state["level2"] > 0.01:
-                upd_state["resumelevel2"] = upd_state["level2"]
         await super().update_state(upd_state, set_seen)
 
     async def on(self):  # pylint: disable=invalid-name
