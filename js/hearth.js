@@ -2,38 +2,40 @@ import reset from 'reset-css';
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom';
 import ReconnectingWebsocket from 'reconnecting-websocket';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import FormLabel from '@material-ui/core/FormLabel';
-import FormControl from '@material-ui/core/FormControl';
-import FormGroup from '@material-ui/core/FormGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import Icon from '@material-ui/core/Icon';
-import TextField from '@material-ui/core/TextField';
-import IconButton from '@material-ui/core/IconButton';
-import Switch from '@material-ui/core/Switch';
-//import Slider from '@material-ui/core/Slider';
-import Slider from 'rc-slider/lib/Slider';
-import SliderHandle from 'rc-slider/lib/Handle';
-import 'rc-slider/assets/index.css';
-import Tooltip from '@material-ui/core/Tooltip';
-import Select from '@material-ui/core/Select';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
+import { ThemeProvider, createMuiTheme } from '@mui/material/styles';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import BottomNavigation from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormLabel from '@mui/material/FormLabel';
+import FormControl from '@mui/material/FormControl';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormHelperText from '@mui/material/FormHelperText';
+import Icon from '@mui/material/Icon';
+import BoltIcon from '@mui/icons-material/Bolt';
+import HouseIcon from '@mui/icons-material/House';
+import ListIcon from '@mui/icons-material/List';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Switch from '@mui/material/Switch';
+import Slider from '@mui/material/Slider';
+import Tooltip from '@mui/material/Tooltip';
+import Select from '@mui/material/Select';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
 import C3Chart from 'react-c3js';
 import 'c3/c3.css';
 import { go as fuzzysort } from 'fuzzysort';
@@ -41,34 +43,70 @@ import { go as fuzzysort } from 'fuzzysort';
 const theme = createMuiTheme();
 
 const DEVICES = {};
+let HEARTH = null;
 
-class Header extends Component {
-    clear() {
-		var input = document.getElementById('filter');
-		input.value = "";
-		this.props.onChange({target: input});
+class QuickPane extends Component {
+    render() {
+        return "Quick"
+    }
+}
+
+class HousePane extends Component {
+    render() {
+        const rooms = [...new Set(Object.keys(DEVICES).map(x => x.split('/')[0]))].sort()
+
+        const rows = [];
+        for (const room of rooms) {
+            rows.push(
+                <ListItem button key={room} onClick={(e,v)=>HEARTH.open_room(room)}>
+                    <ListItemText primary={room} />
+                </ListItem> );
+        }
+        return <List>{rows}</List>
+    }
+}
+
+class DevicePane extends Component {
+    constructor(props) {
+        super(props)
+        this.state = {filterText: props.defaultFilter}
+    }
+    update_filter(e) {
+        this.setState({filterText: e.target.value});
     }
 
     render() {
-        return (
-            <div id="header" style={{ height: '2cm' }}>
-                <AppBar position="fixed"><Toolbar>
-                    <IconButton onClick={this.clear.bind(this)}><Icon>close</Icon></IconButton>
-                    <TextField
-                        id="filter"
-                        onChange={this.props.onChange}
-                        fullWidth={true}
-                    />
-                </Toolbar></AppBar>
-            </div>
-        );
+        const devices = (this.state.filterText
+            ? fuzzysort(this.state.filterText, Object.values(DEVICES), {key: 'id'}).map(x => x.obj)
+            : Object.values(DEVICES)).sort((a,b) => (a.id < b.id ? -1 : (a.id > b.id ? 1 : 0)));
+        return (<>
+            <FilterHeader value={this.state.filterText} onChange={this.update_filter.bind(this)} />
+            <DeviceList devices={devices} /></>
+        )
+    }
+}
+
+class Content extends Component {
+    render() {
+        switch (this.props.panel) {
+            case "quick":
+                return <QuickPane />
+            break;
+        case "house":
+            return <HousePane />
+            break
+        case "devices":
+            return <DevicePane defaultFilter={this.props.deviceFilter}/>
+            break;
+        }
+
+        return null;
     }
 }
 
 class DeviceHandler {
-    constructor(hearth, dev) {
+    constructor(dev) {
         this.id = dev.id;
-        this.hearth = hearth;
         this.props = dev
         this.component = null;
         this.state = dev.state;
@@ -77,11 +115,11 @@ class DeviceHandler {
 
     openDialog() {
         this.open = true;
-        this.hearth.forceUpdate();
+        HEARTH.forceUpdate();
     }
     closeDialog() {
         this.open = false;
-        this.hearth.forceUpdate();
+        HEARTH.forceUpdate();
     }
 
     action(action) {
@@ -94,7 +132,7 @@ class DeviceHandler {
         Object.assign(this.state, state);
         if (this.component) {
             this.component.setState(state);
-            this.hearth.forceUpdate();
+            HEARTH.forceUpdate();
         }
     }
 
@@ -104,7 +142,7 @@ class DeviceHandler {
 
     send(payload) {
         payload.id = this.id;
-        this.hearth.send(payload);
+        HEARTH.send(payload);
     }
 
     handle_message(data) {
@@ -126,6 +164,60 @@ class DeviceHandler {
             });
         }
         return res;
+    }
+}
+
+class FilterHeader extends Component {
+    clear() {
+		var input = document.getElementById('filter');
+		input.value = "";
+		this.props.onChange({target: input});
+    }
+
+    render() {
+        return (
+            <div id="header" style={{ height: '2cm' }}>
+                <AppBar position="fixed"><Toolbar>
+                    <IconButton onClick={this.clear.bind(this)}><Icon>close</Icon></IconButton>
+                    <TextField
+                        id="filter"
+                        value={this.props.value}
+                        onChange={this.props.onChange}
+                        fullWidth={true}
+                    />
+                </Toolbar></AppBar>
+            </div>
+        );
+    }
+}
+
+class DeviceList extends Component {
+    render() {
+        const rows = [];
+        var dialog = "";
+
+        for (var key in this.props.devices) {
+            const device = this.props.devices[key];
+            const id = String(device.id);
+
+            rows.push(
+                <ListItem button key={id} onClick={device.openDialog.bind(device)} >
+                    {device.alerts("al" + id)}
+                    <ListItemText primary={id} />
+                </ListItem> );
+            if (device.open) {
+                dialog = <DeviceDialog {...device.props} />;
+            }
+        }
+
+        return (
+            <div>
+                <List>
+                    {rows}
+                </List>
+                {dialog}
+            </div>
+        );
     }
 }
 
@@ -167,30 +259,18 @@ class DeviceDialog extends Component {
                     </FormControl>
                 );
             case "Slider":
-                const tthandle = (props) => {
-                  const { value, dragging, index, ...restProps } = props;
-                  return (
-                    <Tooltip
-                      title={value}
-                      placement="top"
-                      key={index}
-                    >
-                      <SliderHandle value={value} {...restProps} />
-                    </Tooltip>
-                  );
-                };
                 if (c.state) {
-                    c.props.defaultValue = state[c.state];
+                    c.props.value = state[c.state];
                 }
                 return (
-                    <div key={'div-' + key}>
-                        <p>{c.props.label}</p>
+                    <Box>
+                        <Typography>{c.props.label}</Typography>
                         <Slider
                             key={key}
-                            handle={tthandle}
-                            onAfterChange={action}
+                            onChange={(e,v) => action(v)}
+                            valueLabelDisplay="on"
                             {...c.props} />
-                    </div>
+                    </Box>
                 );
             case "Text":
                 if (c.state) {
@@ -200,7 +280,11 @@ class DeviceDialog extends Component {
                     }
                 }
                 return (
-                    <table key={key} width="100%"><tbody><tr><th align="left">{c.props.label}</th><td align="right">{c.props.value.toString()}</td></tr></tbody></table>
+                    <table key={key} width="100%">
+                        <tbody><tr><th align="left">
+                            <Typography>{c.props.label}</Typography>
+                        </th>
+                        <td align="right">{c.props.value.toString()}</td></tr></tbody></table>
                 );
             case "C3Chart":
                 if (c.state) {
@@ -249,6 +333,7 @@ class DeviceDialog extends Component {
         return (
             <Dialog
                 key={'dialog-' + this.id}
+                fullscreen
                 open
                 onClose={this.handleClose.bind(this)}
             >
@@ -268,40 +353,10 @@ class DeviceDialog extends Component {
     }
 }
 
-class DeviceList extends Component {
-    render() {
-        const rows = [];
-        var dialog = "";
-
-        for (var key in this.props.devices) {
-            const device = this.props.devices[key];
-            const id = String(device.id);
-
-            rows.push(
-                <ListItem button key={id} onClick={device.openDialog.bind(device)} >
-                    {device.alerts("al" + id)}
-                    <ListItemText primary={id} />
-                </ListItem> );
-            if (device.open) {
-                dialog = <DeviceDialog {...device.props} />;
-            }
-        }
-
-        return (
-            <div>
-                <List>
-                    {rows}
-                </List>
-                {dialog}
-            </div>
-        );
-    }
-}
-
 class Hearth extends Component {
     constructor(props) {
         super(props)
-        this.state = {filterText: '', devices: {}};
+        this.state = {active_panel: "quick", device_filter: null};
         this.ws = new ReconnectingWebsocket(
             'ws://' + window.location.hostname + ':' + window.location.port + '/ws',
         );
@@ -309,6 +364,7 @@ class Hearth extends Component {
         this.ws.addEventListener('message', event => {
             this.handle_message(JSON.parse(event.data));
         });
+        HEARTH = this;
     }
 
     handle_message(data) {
@@ -319,16 +375,19 @@ class Hearth extends Component {
                         const new_devices = {};
                         data.devices.forEach(dev => {
                             if (!(dev.id in DEVICES)) {
-                                DEVICES[dev.id] = new DeviceHandler(this, dev);
+                                DEVICES[dev.id] = new DeviceHandler(dev);
                             }
                         });
-                        this.setState({devices: DEVICES});
                     }
                 }
             } else if (data['id'] in DEVICES) {
                 DEVICES[data['id']].handle_message(data)
             }
         }
+    }
+
+    open_room(room) {
+        this.setState({active_panel: "devices", device_filter: room})
     }
 
     send(data) {
@@ -339,21 +398,21 @@ class Hearth extends Component {
         this.send({id: 0, m: "sync_devices", devices: []})
     }
 
-    update_filter(e) {
-        this.setState({filterText: e.target.value});
-    }
-
     render() {
-        const devices = (this.state.filterText
-            ? fuzzysort(this.state.filterText, Object.values(this.state.devices), {key: 'id'}).map(x => x.obj)
-            : Object.values(this.state.devices)).sort((a,b) => (a.id < b.id ? -1 : (a.id > b.id ? 1 : 0)));
         return (
-            <MuiThemeProvider theme={theme}>
-                <div>
-                    <Header onChange={this.update_filter.bind(this)} />
-                    <DeviceList devices={devices} />
-                </div>
-            </MuiThemeProvider>
+            <ThemeProvider theme={theme}>
+                <Content panel={this.state.active_panel} deviceFilter={this.state.device_filter} />
+                <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
+                    <BottomNavigation
+                      showLabels
+                      value={this.state.active_panel}
+                      onChange={(event, newValue) => this.setState({active_panel: newValue })}>
+                          <BottomNavigationAction label="Quick" value="quick" icon={<BoltIcon />} />
+                          <BottomNavigationAction label="House" value="house" icon={<HouseIcon />} />
+                          <BottomNavigationAction label="Devices" value="devices" icon={<ListIcon />} />
+                  </BottomNavigation>
+                </Paper>
+            </ThemeProvider>
         );
     }
 }
