@@ -33,13 +33,11 @@ class Room(Device):
 
     async def off(self):
         """Shut everything down."""
-        LOGGER.debug("Shutting down %s", self.id)
         asyncio.gather(*[d.off() for d in self.devices.values()
                          if hasattr(d, 'off')])
 
     async def on(self):
         """Shut everything down."""
-        LOGGER.debug("Starting up %s", self.id)
         asyncio.gather(*[d.on() for d in self.devices.values()
                          if hasattr(d, 'on')])
 
@@ -60,7 +58,6 @@ class Room(Device):
 
     async def toggle(self):
         """Toggle room, following biglight."""
-        LOGGER.debug("Toggle")
         await (self.off() if self.primary_device.is_on() else self.on())
 
     async def set_state(self, upd_state):
@@ -70,6 +67,10 @@ class Room(Device):
                 upd_state['scene'] = self.scenes[0]
             LOGGER.debug("Setting scene: %s", upd_state['scene'])
         await self.update_state(upd_state)
+
+    async def set_scene(self, scene):
+        """Set scene."""
+        await self.set_state({'scene': scene})
 
     async def cycle_scene(self, step):
         """Cycle scene."""

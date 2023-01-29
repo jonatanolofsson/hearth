@@ -171,6 +171,9 @@ class Device:
         state.update({'alerts': self.alerts()})
         return {'id': self.id, 'state': state, 'ui': ui_}
 
+    def quick_actions(self):
+        return []
+
     def ui(self):  # pylint: disable=no-self-use, invalid-name
         """UI."""
         return False
@@ -220,17 +223,36 @@ class HearthDevice(Device):
 
     async def webhandler(self, data, socket):
         """Handle incoming message."""
-        if data['m'] == 'sync_devices':
+        if data['m'] == 'get_devices':
             await socket.send(self.webmessage(
                 {"m": "devices",
                  "devices": [d.serialize()
                              for d in hearth.DEVICES.values()]}))
+        elif data['m'] == 'get_quick_actions':
+            await socket.send(self.webmessage(
+                {"m": "quick_actions",
+                 "quick_actions": [x
+                                   for d in hearth.DEVICES.values()
+                                   for x in d.quick_actions()]}))
         else:
             await super().webhandler(data, socket)
 
     def ui(self):
         """UI."""
         return {"ui": self.events_ui()}
+
+    def quick_actions(self):
+        """Quick actions."""
+        return [
+            {"class": "Button",
+             "label": "All off",
+             "icon": "PowerOff",
+             "message": {"id": 0, "m": "off"}
+             }]
+
+    async def off(self):
+        """Trigger Off event."""
+        self.event('off')
 
 
 async def setup():

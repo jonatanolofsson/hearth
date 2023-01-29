@@ -14,7 +14,8 @@ WEBROOT = ROOT_DIR + '/www'
 
 
 WEBSERVER = None
-WEBAPP = Sanic(__name__)
+# print("Name: ", __name__)
+WEBAPP = Sanic("hearth")
 WEBAPP.static("/static", WEBROOT)
 SOCKETS = set()
 
@@ -25,7 +26,7 @@ async def index(_):
     return await response.file(WEBROOT + '/index.html')
 
 
-@WEBAPP.route('/a/<device:string>/<method:string>')
+@WEBAPP.route('/a/<device:str>/<method:str>')
 async def action(request, device='', method=''):
     """Main page."""
     data = {

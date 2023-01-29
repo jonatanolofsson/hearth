@@ -1,17 +1,23 @@
-import reset from 'reset-css';
+//import reset from 'reset-css';
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom';
 import ReconnectingWebsocket from 'reconnecting-websocket';
 import { ThemeProvider, createMuiTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -25,6 +31,8 @@ import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import Icon from '@mui/material/Icon';
+import PowerOffIcon from '@mui/icons-material/PowerOff';
+import ConnectedTvIcon from '@mui/icons-material/ConnectedTv';
 import BoltIcon from '@mui/icons-material/Bolt';
 import HouseIcon from '@mui/icons-material/House';
 import ListIcon from '@mui/icons-material/List';
@@ -40,14 +48,52 @@ import C3Chart from 'react-c3js';
 import 'c3/c3.css';
 import { go as fuzzysort } from 'fuzzysort';
 
-const theme = createMuiTheme();
+const theme = createMuiTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
-const DEVICES = {};
+const ICONS = {
+    "PowerOff": PowerOffIcon,
+    "ConnectedTv": ConnectedTvIcon
+};
+
+let DEVICES = {};
+let QUICK_ACTIONS = [];
 let HEARTH = null;
+let OPEN_DIALOG = null;
+
+function open_dialog(e) {
+    OPEN_DIALOG = this;
+    HEARTH.forceUpdate();
+}
+
+function close_dialog() {
+    OPEN_DIALOG = null;
+    HEARTH.forceUpdate();
+}
+
+function quick_action(action) {
+    HEARTH.send(action["message"]);
+}
 
 class QuickPane extends Component {
     render() {
-        return "Quick"
+        console.log(QUICK_ACTIONS);
+        return <List>
+            {QUICK_ACTIONS.map(action => {
+                const MIcon = ("icon" in action && action["icon"] in ICONS) ? ICONS[action["icon"]] : null;
+                return (
+                    <ListItem disablePadding onClick={() => quick_action(action)}>
+                        <ListItemButton>
+                            {("icon" in action && action["icon"] in ICONS)
+                             && <ListItemIcon><MIcon /></ListItemIcon>}
+                            <ListItemText primary={action["label"]} />
+                        </ListItemButton>
+                    </ListItem>
+                )})}
+            </List>
     }
 }
 
@@ -55,14 +101,15 @@ class HousePane extends Component {
     render() {
         const rooms = [...new Set(Object.keys(DEVICES).map(x => x.split('/')[0]))].sort()
 
-        const rows = [];
-        for (const room of rooms) {
-            rows.push(
-                <ListItem button key={room} onClick={(e,v)=>HEARTH.open_room(room)}>
-                    <ListItemText primary={room} />
-                </ListItem> );
-        }
-        return <List>{rows}</List>
+        return (
+            <List>
+                {rooms.map((room) => (
+                    <ListItem button key={room} onClick={(e,v)=>HEARTH.open_room(room)}>
+                        <ListItemText primary={room} />
+                    </ListItem>
+                ))}
+            </List>
+            )
     }
 }
 
@@ -81,8 +128,15 @@ class DevicePane extends Component {
             : Object.values(DEVICES)).sort((a,b) => (a.id < b.id ? -1 : (a.id > b.id ? 1 : 0)));
         return (<>
             <FilterHeader value={this.state.filterText} onChange={this.update_filter.bind(this)} />
-            <DeviceList devices={devices} /></>
-        )
+            <List>
+                {devices.map((device) => (
+                    <ListItem button key={device.id} onClick={open_dialog.bind(device)} >
+                        {device.alerts("al" + String(device.id))}
+                        <ListItemText primary={device.id} />
+                    </ListItem>
+                ))}
+            </List>
+        </>)
     }
 }
 
@@ -110,16 +164,6 @@ class DeviceHandler {
         this.props = dev
         this.component = null;
         this.state = dev.state;
-        this.open = false;
-    }
-
-    openDialog() {
-        this.open = true;
-        HEARTH.forceUpdate();
-    }
-    closeDialog() {
-        this.open = false;
-        HEARTH.forceUpdate();
     }
 
     action(action) {
@@ -186,36 +230,6 @@ class FilterHeader extends Component {
                         fullWidth={true}
                     />
                 </Toolbar></AppBar>
-            </div>
-        );
-    }
-}
-
-class DeviceList extends Component {
-    render() {
-        const rows = [];
-        var dialog = "";
-
-        for (var key in this.props.devices) {
-            const device = this.props.devices[key];
-            const id = String(device.id);
-
-            rows.push(
-                <ListItem button key={id} onClick={device.openDialog.bind(device)} >
-                    {device.alerts("al" + id)}
-                    <ListItemText primary={id} />
-                </ListItem> );
-            if (device.open) {
-                dialog = <DeviceDialog {...device.props} />;
-            }
-        }
-
-        return (
-            <div>
-                <List>
-                    {rows}
-                </List>
-                {dialog}
             </div>
         );
     }
@@ -314,8 +328,6 @@ class DeviceDialog extends Component {
     }
 
 
-    handleClose = () => { this.handler.closeDialog(); }
-
     render() {
         var dom = [];
         var components = this.props.ui.ui || [];
@@ -335,7 +347,7 @@ class DeviceDialog extends Component {
                 key={'dialog-' + this.id}
                 fullscreen
                 open
-                onClose={this.handleClose.bind(this)}
+                onClose={close_dialog}
             >
                 <DialogTitle>{this.props.id}</DialogTitle>
                 <DialogContent>
@@ -346,7 +358,7 @@ class DeviceDialog extends Component {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={this.handleClose.bind(this)} >Close</Button>
+                    <Button onClick={close_dialog} >Close</Button>
                 </DialogActions>
             </Dialog>
         );
@@ -356,30 +368,39 @@ class DeviceDialog extends Component {
 class Hearth extends Component {
     constructor(props) {
         super(props)
+        HEARTH = this;
         this.state = {active_panel: "quick", device_filter: null};
         this.ws = new ReconnectingWebsocket(
             'ws://' + window.location.hostname + ':' + window.location.port + '/ws',
         );
-        this.ws.addEventListener('open', event => { this.sync_devices(); });
+        this.ws.addEventListener('open', event => { this.get_devices(); });
+        this.ws.addEventListener('open', event => { this.get_quick_actions(); });
         this.ws.addEventListener('message', event => {
             this.handle_message(JSON.parse(event.data));
         });
-        HEARTH = this;
     }
 
     handle_message(data) {
         if ('id' in data) {
             if (data['id'] === 0) {
-                if ('m' in data && data['m'] == "devices") {
-                    if ('devices' in data) {
-                        const new_devices = {};
-                        data.devices.forEach(dev => {
-                            if (!(dev.id in DEVICES)) {
-                                DEVICES[dev.id] = new DeviceHandler(dev);
-                            }
-                        });
+                if ('m' in data) {
+                    if (data['m'] == "devices") {
+                        if ('devices' in data) {
+                            data.devices.forEach(dev => {
+                                if (!(dev.id in DEVICES)) {
+                                    DEVICES[dev.id] = new DeviceHandler(dev);
+                                }
+                            });
+                        }
+                    }
+                    if (data['m'] == "quick_actions") {
+                        if ('quick_actions' in data) {
+                            console.log(data["quick_actions"])
+                            QUICK_ACTIONS = data["quick_actions"].sort((a,b) => a["id"] - b["id"]).sort((a,b) => "order" in a ? ("order" in b ? a["order"] - b["order"] : -1) : ("order" in b ? 1 : 0));
+                        }
                     }
                 }
+                HEARTH.forceUpdate();
             } else if (data['id'] in DEVICES) {
                 DEVICES[data['id']].handle_message(data)
             }
@@ -394,14 +415,22 @@ class Hearth extends Component {
         this.ws.send(JSON.stringify(data))
     }
 
-    sync_devices() {
-        this.send({id: 0, m: "sync_devices", devices: []})
+    get_devices() {
+        this.send({id: 0, m: "get_devices", devices: []})
+    }
+
+    get_quick_actions() {
+        this.send({id: 0, m: "get_quick_actions"})
     }
 
     render() {
         return (
             <ThemeProvider theme={theme}>
-                <Content panel={this.state.active_panel} deviceFilter={this.state.device_filter} />
+                <CssBaseline />
+                {OPEN_DIALOG && <DeviceDialog {...OPEN_DIALOG.props} />}
+                <Box sx={{ pb: 7 }}>
+                    <Content panel={this.state.active_panel} deviceFilter={this.state.device_filter} />
+                </Box>
                 <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
                     <BottomNavigation
                       showLabels
