@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import hearth
-from hearth import Device, D, tz
+from hearth import Device, D, tz, call_later
 
 __all__ = ['Room']
 
@@ -40,6 +40,16 @@ class Room(Device):
         """Shut everything down."""
         asyncio.gather(*[d.on() for d in self.devices.values()
                          if hasattr(d, 'on')])
+
+    async def motion(self, value, old_value=None):
+        """... enters the room."""
+        if not self.state["automation"]:
+            return
+        if self.turn_off:
+            self.turn_off.cancel()
+        self.turn_off = call_later(self.timeout, self.no_motion)
+        if value != old_value:
+            await self.on()
 
     async def no_motion(self):
         """No motion for a while."""
