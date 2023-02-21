@@ -19,7 +19,7 @@ class ServerConnection:
             uri = "mqtt://" + uri
         self.uri = uri
         self.subscriptions = {}
-        self.mqtt = MQTTClient(config={"auto_reconnect": False})
+        self.mqtt = MQTTClient(config={"auto_reconnect": True})
         for key in logging.Logger.manager.loggerDict:
             if key.startswith("hbmqtt"):
                 logging.getLogger(key).setLevel(logging.WARNING)
@@ -60,7 +60,6 @@ class ServerConnection:
         """Subscribe to topic with callback."""
         self.subscriptions[topic] = (callback, qos)
         await self.mqtt.subscribe([(topic, qos)])
-        LOGGER.info("Subscribed to topic %s", topic)
 
     async def message_handler(self, topic, payload):
         """Default message handler."""

@@ -17,8 +17,9 @@ LOGGER = logging.getLogger(__name__)
 class Device:
     """Device base class."""
 
-    async def __init__(self, id_):
+    async def __init__(self, id_, mapping=None):
         self.id = id_  # pylint: disable=invalid-name
+        self.mapping = mapping
         self._update_fut = None
         self.state = {'reachable': False,
                       'last_seen': ''}
@@ -102,7 +103,7 @@ class Device:
 
         if upd_state:
             self.state.update(upd_state)
-            self.history.append([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), deepcopy(self.state)])
+            self.history.append([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), deepcopy(upd_state)])
 
     async def update_state(self, upd_state, set_seen=True):
         """Update the state. This is mainly called when the device informs of a
@@ -110,6 +111,11 @@ class Device:
         if self._update_fut is not None:
             self._update_fut.set_result(True)
             self._update_fut = None
+
+        if self.mapping:
+            for s in upd_state:
+                if s in self.mapping and upd_state[s] in self.mapping[s]:
+                    upd_state[s] = self.mapping[s][upd_state[s]]
 
         actually_updated = {
             state: value

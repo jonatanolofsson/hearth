@@ -45,8 +45,9 @@ import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import C3Chart from 'react-c3js';
-import 'c3/c3.css';
+import './c3.css';
 import { go as fuzzysort } from 'fuzzysort';
+import {format as d3format} from 'd3-format'
 
 const theme = createMuiTheme({
   palette: {
@@ -191,7 +192,7 @@ class DeviceHandler {
 
     handle_message(data) {
         if ('state' in data) {
-            console.log("Updating state: ", data['state']);
+            //console.log("Updating state: ", data['state']);
             this.setState(data['state']);
         }
     }
@@ -304,6 +305,10 @@ class DeviceDialog extends Component {
                 if (c.state) {
                     c.props.data.json = state[c.state];
                 }
+                if ("y" in c.props.axis && "tick" in c.props.axis["y"] && "formatstr" in c.props.axis["y"]["tick"]) {
+                    c.props.axis["y"]["tick"]["format"] = d3format(c.props.axis["y"]["tick"]["formatstr"]);
+                    console.log("Formatting: ", c.props.axis["y"]["tick"]["format"]);
+                }
                 return (
                     <C3Chart
                         key={key}
@@ -345,7 +350,6 @@ class DeviceDialog extends Component {
         return (
             <Dialog
                 key={'dialog-' + this.id}
-                fullscreen
                 open
                 onClose={close_dialog}
             >

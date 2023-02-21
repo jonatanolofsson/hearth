@@ -3,9 +3,10 @@ import asyncio
 import json
 import logging
 import hearth
+from hearth.sensor import Sensor
 from hearth import Device, mqtt
 
-__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer']  #, 'ZWSwitchDimmer']
+__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer', 'ZWContact']  #, 'ZWSwitchDimmer']
 WAIT_TIME = 10
 
 LOGGER = logging.getLogger(__name__)
@@ -14,8 +15,8 @@ LOGGER = logging.getLogger(__name__)
 class ZWDevice(Device):
     """ZWave device."""
 
-    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
-        await super().__init__(id_)
+    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave", mapping=None):
+        await Device.__init__(self, id_, mapping)
         self.zwid = zwid
         self.endpoint = endpoint
         self.mqtt = await mqtt.server()
@@ -40,9 +41,9 @@ class ZWDevice(Device):
         try:
             data = json.loads(payload)
             LOGGER.info("Updating from zwave: %s: %s", state, data)
-            await self.update_state({state: data["value"] if "value" in data else None})
+            await self.update_state({state: data.get("value")})
         except Exception as e:
-            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s :: %s", topic, key, state, payload, e)
+            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s :: %s", topic, key, state, payload, str(e))
 
     async def statushandler(self, _, payload):
         """Handle updatemessage from MQTT."""
@@ -223,6 +224,19 @@ class ZWDimmer(ZWDevice):
                         "props": {"label": "Power", "format": "{:1} W"},
                      "state": "power"},
                 ]}
+
+
+class ZWContact(Sensor, ZWDevice):
+    async def __init__(self, id_, zwid, endpoint=0, mqtt_prefix="zwave"):
+        await ZWDevice.__init__(self, id_=id_, zwid=zwid, endpoint=endpoint, mqtt_prefix=mqtt_prefix, mapping={'contact': {23: True, 22: False}})
+        await Sensor.__init__(self, ['contact', 'temperature'],
+                              {'temperature': {'ylabel': '°C',
+                                               'windowsize': 48},
+                               'contact': {'discrete': True}})
+        self.zwstates["contact"] = f"113/{endpoint}/Access_Control/Door_state"
+        self.zwstates["battery"] = f"128/{endpoint}/level"
+        self.zwstates["temperature"] = f"49/{endpoint}/Air_temperature"
+        await self.subscribe()
 
 
 # class ZWSwitchDimmer(ZWDevice):
