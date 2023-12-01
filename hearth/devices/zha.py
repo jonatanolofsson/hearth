@@ -111,7 +111,7 @@ class ZHALight(ZDevice):
                      "state": "brightness"}
                 ]}
 
-    async def is_on(self):
+    def is_on(self):
         """Check if light is on."""
         return self.state['state']
 

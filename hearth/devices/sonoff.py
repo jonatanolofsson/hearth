@@ -33,6 +33,10 @@ class SonOff(Device):
         self.expect_update(WAIT_TIME)
         await self.mqtt.pub(f"cmnd/{self.name}/power", "on")
 
+    def is_on(self):
+        """Is it on?"""
+        return self.state["on"]
+
     async def off(self):
         """Switch off."""
         self.expect_update(WAIT_TIME)
