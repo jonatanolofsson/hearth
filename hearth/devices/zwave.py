@@ -6,7 +6,8 @@ import hearth
 from hearth.sensor import Sensor
 from hearth import Device, mqtt
 
-__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer', 'ZWContact']  #, 'ZWSwitchDimmer']
+__all__ = ['ZWThermostat', 'ZWSwitch', 'ZWDimmer',
+           'ZWContact']  # , 'ZWSwitchDimmer']
 WAIT_TIME = 10
 
 LOGGER = logging.getLogger(__name__)
@@ -15,9 +16,9 @@ LOGGER = logging.getLogger(__name__)
 class ZWDevice(Device):
     """ZWave device."""
 
-    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave", mapping=None):
+    async def __init__(self, id_, zwid=None, endpoint=1, mqtt_prefix="zwave", mapping=None):
         await Device.__init__(self, id_, mapping)
-        self.zwid = zwid
+        self.zwid = zwid or id_
         self.endpoint = endpoint
         self.mqtt = await mqtt.server()
         self.zwstates = {}
@@ -43,7 +44,8 @@ class ZWDevice(Device):
             LOGGER.info("Updating from zwave: %s: %s", state, data)
             await self.update_state({state: data.get("value")})
         except Exception as e:
-            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s :: %s", topic, key, state, payload, str(e))
+            LOGGER.warning("Failed to parse MQTT update message: \"%s\" (%s / %s): %s :: %s",
+                           topic, key, state, payload, str(e))
 
     async def statushandler(self, _, payload):
         """Handle updatemessage from MQTT."""
@@ -60,13 +62,14 @@ class ZWDevice(Device):
                     if key in self.zwstates}
         if zwstates:
             await asyncio.gather(*[self.mqtt.pub(f"{self.basetopic}/{key}/set", {"value": value}) for key, value in zwstates.items()])
-            LOGGER.info("Publish zwstates to %s: %s", {self.basetopic}, zwstates)
+            LOGGER.info("Publish zwstates to %s: %s",
+                        {self.basetopic}, zwstates)
         await super().set_state(upd_state)
 
 
 class ZWThermostat(ZWDevice):
     """ZWave thermostat."""
-    async def __init__(self, id_, zwid, endpoint=0, mqtt_prefix="zwave"):
+    async def __init__(self, id_, zwid=None, endpoint=0, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, endpoint, mqtt_prefix)
         await super().init_state({'temperature_setpoint': 21.0, "battery": 100})
         self.zwstates["temperature_setpoint"] = "67/0/setpoint/1"
@@ -99,7 +102,7 @@ class ZWThermostat(ZWDevice):
 
 class ZWSwitch(ZWDevice):
     """ZWave Switch."""
-    async def __init__(self, id_, zwid, endpoint=1, mqtt_prefix="zwave"):
+    async def __init__(self, id_, zwid=None, endpoint=1, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, mqtt_prefix)
         await super().init_state({'switch': False, "power": 0})
         self.zwstates["switch"] = f"37/{endpoint}/currentValue"
@@ -134,7 +137,7 @@ class ZWSwitch(ZWDevice):
 
 class ZWDimmer(ZWDevice):
     """ZWave dimmer."""
-    async def __init__(self, id_, zwid, mqtt_prefix="zwave"):
+    async def __init__(self, id_, zwid=None, mqtt_prefix="zwave"):
         await super().__init__(id_, zwid, 1, mqtt_prefix)
         await super().init_state({"switch": False, "level": 0, "power": 0, "resumelevel": 99})
         self.zwstates["level"] = f"38/1/currentValue"
@@ -227,7 +230,7 @@ class ZWDimmer(ZWDevice):
 
 
 class ZWContact(Sensor, ZWDevice):
-    async def __init__(self, id_, zwid, endpoint=0, mqtt_prefix="zwave"):
+    async def __init__(self, id_, zwid=None, endpoint=0, mqtt_prefix="zwave"):
         await ZWDevice.__init__(self, id_=id_, zwid=zwid, endpoint=endpoint, mqtt_prefix=mqtt_prefix, mapping={'contact': {23: True, 22: False}})
         await Sensor.__init__(self, ['contact', 'temperature'],
                               {'temperature': {'ylabel': '°C',
@@ -241,7 +244,7 @@ class ZWContact(Sensor, ZWDevice):
 
 # class ZWSwitchDimmer(ZWDevice):
     # """ZWave Switch."""
-    # async def __init__(self, id_, zwid, device, endpoint=2, mqtt_prefix="zwave"):
+    # async def __init__(self, id_, zwid=None, device, endpoint=2, mqtt_prefix="zwave"):
         # await super().__init__(id_, zwid, mqtt_prefix)
         # await super().init_state({'switch': False})
         # self.zwstates["switch"] = f"38/{endpoint}/0"
@@ -267,13 +270,13 @@ class ZWContact(Sensor, ZWDevice):
     # def ui(self):
         # """Return ui representation."""
         # return {"rightIcon": "indeterminate_check_box",
-                # "rightAction": "toggle",
-                # "ui": [
-                    # {"class": "Switch",
-                     # "props": {"label": "On"},
-                     # "state": "switch"},
-                    # {"class": "Text",
-                        # "props": {"label": "Power", "format": "{:1} W"},
-                     # "state": "power"},
-                # ]}
+        # "rightAction": "toggle",
+        # "ui": [
+        # {"class": "Switch",
+        # "props": {"label": "On"},
+        # "state": "switch"},
+        # {"class": "Text",
+        # "props": {"label": "Power", "format": "{:1} W"},
+        # "state": "power"},
+        # ]}
 
