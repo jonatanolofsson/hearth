@@ -9,17 +9,16 @@ LOGGER = logging.getLogger(__name__)
 
 class Device(DeviceBase):
     """Zigbee device."""
-    async def __init__(self, id_, uid):
+    async def __init__(self, id_):
         await super().__init__(id_)
-        self.uid = uid if uid.startswith('0x') else '0x' + uid.split('-')[0].replace(':', '')
         self.mqtt = await mqtt.server()
         self.zbstates = []
-        await self.mqtt.sub(f"zigbee2mqtt/{self.uid}", self.updatehandler)
+        await self.mqtt.sub(f"zigbee2mqtt/{self.id}", self.updatehandler)
         await self.refresh()
 
     async def updatehandler(self, _, payload):
         """Handle updatemessage from MQTT."""
-        LOGGER.info("Getting zigbee update: %s :: %s", self.uid, payload)
+        LOGGER.info("Getting zigbee update: %s :: %s", self.id, payload)
         try:
             await self.update_state(json.loads(payload))
         except:
@@ -30,12 +29,12 @@ class Device(DeviceBase):
         zbstates = {key: value for key, value in upd_state.items()
                     if key in self.zbstates}
         if zbstates:
-            await self.mqtt.pub(f"zigbee2mqtt/{self.uid}/set", zbstates)
-            LOGGER.info("Publish zbstates on %s: %s", f"zigbee2mqtt/{self.uid}/set", zbstates)
+            await self.mqtt.pub(f"zigbee2mqtt/{self.id}/set", zbstates)
+            LOGGER.info("Publish zbstates on %s: %s", f"zigbee2mqtt/{self.id}/set", zbstates)
         await super().set_state(upd_state)
 
     async def refresh(self):
-        await self.mqtt.pub(f"zigbee2mqtt/{self.uid}/get", '')
+        await self.mqtt.pub(f"zigbee2mqtt/{self.id}/get", '')
 
     def alerts(self):
         """List of active alerts."""
